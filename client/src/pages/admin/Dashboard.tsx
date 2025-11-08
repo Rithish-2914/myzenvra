@@ -10,6 +10,7 @@ import {
   Settings,
   LogOut,
   Gift,
+  TrendingUp,
 } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";

@@ -1,0 +1,116 @@
+ User profile fetched: {email: 'bajjuririthish521@gmail.com', role: 'admin'}
+index-DZSooh1K.js:48  GET https://myzenvra.vercel.app/api/admin/analytics 504 (Gateway Timeout)
+(anonymous) @ index-DZSooh1K.js:48
+o @ index-DZSooh1K.js:48
+v @ index-DZSooh1K.js:48
+start @ index-DZSooh1K.js:48
+fetch @ index-DZSooh1K.js:48
+xu @ index-DZSooh1K.js:48
+onSubscribe @ index-DZSooh1K.js:48
+subscribe @ index-DZSooh1K.js:48
+(anonymous) @ index-DZSooh1K.js:48
+DM @ index-DZSooh1K.js:38
+wg @ index-DZSooh1K.js:40
+al @ index-DZSooh1K.js:40
+yC @ index-DZSooh1K.js:40
+ea @ index-DZSooh1K.js:38
+e8 @ index-DZSooh1K.js:40
+ya @ index-DZSooh1K.js:40
+p2 @ index-DZSooh1K.js:40
+S @ index-DZSooh1K.js:25
+T @ index-DZSooh1K.js:25Understand this error
+index-DZSooh1K.js:40 ReferenceError: TrendingUp is not defined
+    at Gl (index-DZSooh1K.js:1867:28946)
+    at W1 (index-DZSooh1K.js:38:16998)
+    at b2 (index-DZSooh1K.js:40:44030)
+    at v2 (index-DZSooh1K.js:40:39766)
+    at ZV (index-DZSooh1K.js:40:39694)
+    at Rp (index-DZSooh1K.js:40:39547)
+    at T0 (index-DZSooh1K.js:40:35914)
+    at yC (index-DZSooh1K.js:40:36717)
+    at ea (index-DZSooh1K.js:38:3274)
+    at index-DZSooh1K.js:40:34246
+v0 @ index-DZSooh1K.js:40
+ZM.n.callback @ index-DZSooh1K.js:40
+JE @ index-DZSooh1K.js:38
+mC @ index-DZSooh1K.js:40
+h2 @ index-DZSooh1K.js:40
+YV @ index-DZSooh1K.js:40
+e8 @ index-DZSooh1K.js:40
+ya @ index-DZSooh1K.js:40
+yC @ index-DZSooh1K.js:40
+ea @ index-DZSooh1K.js:38
+(anonymous) @ index-DZSooh1K.js:40
+setTimeout
+i @ index-DZSooh1K.js:48
+a @ index-DZSooh1K.js:48
+batch @ index-DZSooh1K.js:48
+li @ index-DZSooh1K.js:48
+s @ index-DZSooh1K.js:48
+h @ index-DZSooh1K.js:48
+(anonymous) @ index-DZSooh1K.js:48
+Promise.catch
+v @ index-DZSooh1K.js:48
+start @ index-DZSooh1K.js:48
+fetch @ index-DZSooh1K.js:48
+xu @ index-DZSooh1K.js:48
+onSubscribe @ index-DZSooh1K.js:48
+subscribe @ index-DZSooh1K.js:48
+(anonymous) @ index-DZSooh1K.js:48
+DM @ index-DZSooh1K.js:38
+wg @ index-DZSooh1K.js:40
+al @ index-DZSooh1K.js:40
+yC @ index-DZSooh1K.js:40
+ea @ index-DZSooh1K.js:38
+e8 @ index-DZSooh1K.js:40
+ya @ index-DZSooh1K.js:40
+p2 @ index-DZSooh1K.js:40
+S @ index-DZSooh1K.js:25
+T @ index-DZSooh1K.js:25Understand this error
+index-DZSooh1K.js:1867 Uncaught ReferenceError: TrendingUp is not defined
+    at Gl (index-DZSooh1K.js:1867:28946)
+    at W1 (index-DZSooh1K.js:38:16998)
+    at b2 (index-DZSooh1K.js:40:44030)
+    at v2 (index-DZSooh1K.js:40:39766)
+    at ZV (index-DZSooh1K.js:40:39694)
+    at Rp (index-DZSooh1K.js:40:39547)
+    at T0 (index-DZSooh1K.js:40:35914)
+    at yC (index-DZSooh1K.js:40:36717)
+    at ea (index-DZSooh1K.js:38:3274)
+    at index-DZSooh1K.js:40:34246
+Gl @ index-DZSooh1K.js:1867
+W1 @ index-DZSooh1K.js:38
+b2 @ index-DZSooh1K.js:40
+v2 @ index-DZSooh1K.js:40
+ZV @ index-DZSooh1K.js:40
+Rp @ index-DZSooh1K.js:40
+T0 @ index-DZSooh1K.js:40
+yC @ index-DZSooh1K.js:40
+ea @ index-DZSooh1K.js:38
+(anonymous) @ index-DZSooh1K.js:40
+setTimeout
+i @ index-DZSooh1K.js:48
+a @ index-DZSooh1K.js:48
+batch @ index-DZSooh1K.js:48
+li @ index-DZSooh1K.js:48
+s @ index-DZSooh1K.js:48
+h @ index-DZSooh1K.js:48
+(anonymous) @ index-DZSooh1K.js:48
+Promise.catch
+v @ index-DZSooh1K.js:48
+start @ index-DZSooh1K.js:48
+fetch @ index-DZSooh1K.js:48
+xu @ index-DZSooh1K.js:48
+onSubscribe @ index-DZSooh1K.js:48
+subscribe @ index-DZSooh1K.js:48
+(anonymous) @ index-DZSooh1K.js:48
+DM @ index-DZSooh1K.js:38
+wg @ index-DZSooh1K.js:40
+al @ index-DZSooh1K.js:40
+yC @ index-DZSooh1K.js:40
+ea @ index-DZSooh1K.js:38
+e8 @ index-DZSooh1K.js:40
+ya @ index-DZSooh1K.js:40
+p2 @ index-DZSooh1K.js:40
+S @ index-DZSooh1K.js:25
+T @ index-DZSooh1K.js:25Understand this error
