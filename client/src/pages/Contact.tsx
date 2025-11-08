@@ -30,9 +30,13 @@ export default function Contact() {
                 <Mail className="h-6 w-6 text-primary mt-1" />
                 <div>
                   <h3 className="font-semibold mb-1">Email</h3>
-                  <p className="text-sm text-muted-foreground" data-testid="text-email">
-                    hello@myzenvra.com
-                  </p>
+                  <a 
+                    href="mailto:myzenvra@gmail.com" 
+                    className="text-sm text-muted-foreground hover:text-primary transition-colors" 
+                    data-testid="link-email"
+                  >
+                    myzenvra@gmail.com
+                  </a>
                 </div>
               </div>
             </Card>
@@ -42,9 +46,13 @@ export default function Contact() {
                 <Phone className="h-6 w-6 text-primary mt-1" />
                 <div>
                   <h3 className="font-semibold mb-1">Phone</h3>
-                  <p className="text-sm text-muted-foreground" data-testid="text-phone">
-                    +91 98765 43210
-                  </p>
+                  <a 
+                    href="tel:+919030840952" 
+                    className="text-sm text-muted-foreground hover:text-primary transition-colors" 
+                    data-testid="link-phone"
+                  >
+                    +91 9030840952
+                  </a>
                 </div>
               </div>
             </Card>

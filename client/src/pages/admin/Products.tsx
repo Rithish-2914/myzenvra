@@ -31,6 +31,7 @@ function ProductsPage() {
     category_id: "",
     image_url: "",
     customizable: false,
+    gift_type: "none" as "none" | "watches" | "eyewear" | "frames" | "accessories",
     stock_quantity: "0",
     sizes: ["S", "M", "L", "XL"],
     colors: ["Beige", "Black", "White"],
@@ -116,6 +117,7 @@ function ProductsPage() {
       category_id: product.category_id || "",
       image_url: product.image_url,
       customizable: product.customizable,
+      gift_type: product.gift_type || "none",
       stock_quantity: product.stock_quantity.toString(),
       sizes: product.sizes || ["S", "M", "L", "XL"],
       colors: product.colors || ["Beige", "Black", "White"],
@@ -135,6 +137,7 @@ function ProductsPage() {
       category_id: "",
       image_url: "",
       customizable: false,
+      gift_type: "none" as "none" | "watches" | "eyewear" | "frames" | "accessories",
       stock_quantity: "0",
       sizes: ["S", "M", "L", "XL"],
       colors: ["Beige", "Black", "White"],
@@ -233,15 +236,37 @@ function ProductsPage() {
                 </div>
               </div>
 
-              <div>
-                <Label htmlFor="image_url">Image URL</Label>
-                <Input
-                  id="image_url"
-                  value={formData.image_url}
-                  onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
-                  placeholder="https://..."
-                  required
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="image_url">Image URL</Label>
+                  <Input
+                    id="image_url"
+                    value={formData.image_url}
+                    onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
+                    placeholder="https://..."
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="gift_type">Gift Type (for Customized Gifts)</Label>
+                  <Select
+                    value={formData.gift_type}
+                    onValueChange={(value: "none" | "watches" | "eyewear" | "frames" | "accessories") => 
+                      setFormData({ ...formData, gift_type: value })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select gift type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">None (Regular Product)</SelectItem>
+                      <SelectItem value="watches">Custom Watches</SelectItem>
+                      <SelectItem value="eyewear">Custom Eyewear</SelectItem>
+                      <SelectItem value="frames">Photo Frames</SelectItem>
+                      <SelectItem value="accessories">Custom Accessories</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
 
               <div className="flex gap-4">

@@ -9,6 +9,7 @@ import {
   MessageSquare,
   Settings,
   LogOut,
+  Gift,
 } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
@@ -38,6 +39,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     { name: "Dashboard", path: "/admin", icon: LayoutDashboard },
     { name: "Products", path: "/admin/products", icon: Package },
     { name: "Categories", path: "/admin/categories", icon: FolderOpen },
+    { name: "Customized Gifts", path: "/admin/customized-gifts", icon: Gift },
     { name: "Orders", path: "/admin/orders", icon: ShoppingCart },
     { name: "Customizations", path: "/admin/customizations", icon: Settings },
     { name: "Inquiries", path: "/admin/inquiries", icon: MessageSquare },

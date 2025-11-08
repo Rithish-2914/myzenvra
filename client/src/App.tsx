@@ -23,6 +23,7 @@ import AdminLogin from "@/pages/admin/Login";
 import AdminIndex from "@/pages/admin/Index";
 import AdminProducts from "@/pages/admin/Products";
 import AdminCategories from "@/pages/admin/Categories";
+import AdminCustomizedGifts from "@/pages/admin/CustomizedGifts";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -46,6 +47,7 @@ function Router() {
       <Route path="/admin" component={AdminIndex} />
       <Route path="/admin/products" component={AdminProducts} />
       <Route path="/admin/categories" component={AdminCategories} />
+      <Route path="/admin/customized-gifts" component={AdminCustomizedGifts} />
       <Route component={NotFound} />
     </Switch>
   );
