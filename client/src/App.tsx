@@ -31,6 +31,7 @@ import AdminOrders from "@/pages/admin/Orders";
 import AdminMessages from "@/pages/admin/Messages";
 import AdminUsers from "@/pages/admin/Users";
 import AdminAnalytics from "@/pages/admin/Analytics";
+import AdminAnnouncements from "@/pages/admin/Announcements";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -62,6 +63,7 @@ function Router() {
       <Route path="/admin/messages" component={AdminMessages} />
       <Route path="/admin/users" component={AdminUsers} />
       <Route path="/admin/analytics" component={AdminAnalytics} />
+      <Route path="/admin/announcements" component={AdminAnnouncements} />
       <Route component={NotFound} />
     </Switch>
   );

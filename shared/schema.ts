@@ -387,3 +387,24 @@ export const insertCustomerMessageSchema = z.object({
 
 export type CustomerMessage = z.infer<typeof customerMessageSchema>;
 export type InsertCustomerMessage = z.infer<typeof insertCustomerMessageSchema>;
+
+// Announcement Banner Schema
+export const announcementSchema = z.object({
+  id: z.string().uuid(),
+  message: z.string(),
+  enabled: z.boolean(),
+  link_url: z.string().nullable(),
+  link_text: z.string().nullable(),
+  created_at: z.string(),
+  updated_at: z.string(),
+});
+
+export const insertAnnouncementSchema = z.object({
+  message: z.string().min(1, "Message is required"),
+  enabled: z.boolean().default(true),
+  link_url: z.string().optional(),
+  link_text: z.string().optional(),
+});
+
+export type Announcement = z.infer<typeof announcementSchema>;
+export type InsertAnnouncement = z.infer<typeof insertAnnouncementSchema>;

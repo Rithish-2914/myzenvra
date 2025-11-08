@@ -22,6 +22,7 @@ import {
   insertCustomerMessageSchema,
   insertUserSchema,
   updateUserRoleSchema,
+  insertAnnouncementSchema,
 } from "@shared/schema";
 
 // Configure multer for file uploads
@@ -1659,6 +1660,96 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .slice(0, Number(limit));
 
       res.json(topProducts);
+    } catch (error: any) {
+      handleError(error, res);
+    }
+  });
+
+  // ============ ANNOUNCEMENTS ============
+  
+  // Get active announcement (public)
+  app.get("/api/announcement", async (req, res) => {
+    try {
+      const { data, error } = await supabase
+        .from("announcements")
+        .select("*")
+        .eq("enabled", true)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .single();
+
+      if (error && error.code !== 'PGRST116') throw error;
+      res.json(data || null);
+    } catch (error: any) {
+      handleError(error, res);
+    }
+  });
+
+  // Get all announcements (admin only)
+  app.get("/api/admin/announcements", requireAdmin, async (req, res) => {
+    try {
+      const { data, error } = await supabase
+        .from("announcements")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      res.json(data || []);
+    } catch (error: any) {
+      handleError(error, res);
+    }
+  });
+
+  // Create announcement (admin only)
+  app.post("/api/admin/announcements", requireAdmin, async (req, res) => {
+    try {
+      const validatedData = insertAnnouncementSchema.parse(req.body);
+      
+      const { data, error } = await supabaseAdmin
+        .from("announcements")
+        .insert(validatedData)
+        .select()
+        .single();
+
+      if (error) throw error;
+      res.json(data);
+    } catch (error: any) {
+      handleError(error, res);
+    }
+  });
+
+  // Update announcement (admin only)
+  app.put("/api/admin/announcements/:id", requireAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const validatedData = insertAnnouncementSchema.partial().parse(req.body);
+
+      const { data, error } = await supabaseAdmin
+        .from("announcements")
+        .update(validatedData)
+        .eq("id", id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      res.json(data);
+    } catch (error: any) {
+      handleError(error, res);
+    }
+  });
+
+  // Delete announcement (admin only)
+  app.delete("/api/admin/announcements/:id", requireAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+
+      const { error } = await supabaseAdmin
+        .from("announcements")
+        .delete()
+        .eq("id", id);
+
+      if (error) throw error;
+      res.json({ success: true });
     } catch (error: any) {
       handleError(error, res);
     }

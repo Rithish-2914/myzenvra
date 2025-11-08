@@ -14,6 +14,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
+import AnnouncementBanner from "@/components/AnnouncementBanner";
 
 export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -44,9 +45,11 @@ export default function Header() {
   ];
 
   return (
-    <header className="sticky top-0 z-50 bg-card border-b border-card-border shadow-sm">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16 gap-4">
+    <>
+      <AnnouncementBanner />
+      <header className="sticky top-0 z-50 bg-card border-b border-card-border shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16 gap-4">
           <Link href="/" data-testid="link-home">
             <span className="text-2xl font-serif font-bold tracking-tight cursor-pointer">
               myzenvra
@@ -271,6 +274,7 @@ export default function Header() {
           </nav>
         </div>
       )}
-    </header>
+      </header>
+    </>
   );
 }

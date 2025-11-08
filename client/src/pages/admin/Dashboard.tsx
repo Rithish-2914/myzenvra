@@ -11,6 +11,7 @@ import {
   LogOut,
   Gift,
   TrendingUp,
+  Megaphone,
 } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
@@ -46,6 +47,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     { name: "Inquiries", path: "/admin/inquiries", icon: MessageSquare },
     { name: "Users", path: "/admin/users", icon: Users },
     { name: "Analytics", path: "/admin/analytics", icon: TrendingUp },
+    { name: "Announcements", path: "/admin/announcements", icon: Megaphone },
   ];
 
   return (
