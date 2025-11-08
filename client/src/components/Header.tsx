@@ -1,5 +1,5 @@
 import { Link } from "wouter";
-import { ShoppingCart, Menu, X, Sun, Moon, User, LogOut, Package } from "lucide-react";
+import { ShoppingCart, Menu, X, Sun, Moon, User, LogOut, Package, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
@@ -19,9 +19,11 @@ export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
   const [cartCount] = useState(0);
-  const { user, logout } = useAuth();
+  const { user, userProfile, logout } = useAuth();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  
+  const isAdmin = userProfile?.role === 'admin';
 
   useEffect(() => {
     if (darkMode) {
@@ -118,12 +120,24 @@ export default function Header() {
                     Profile
                   </DropdownMenuItem>
                   <DropdownMenuItem
-                    onClick={() => setLocation('/orders')}
+                    onClick={() => setLocation('/my-orders')}
                     data-testid="menu-orders"
                   >
                     <Package className="mr-2 h-4 w-4" />
                     My Orders
                   </DropdownMenuItem>
+                  {isAdmin && (
+                    <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        onClick={() => setLocation('/admin')}
+                        data-testid="menu-admin"
+                      >
+                        <Shield className="mr-2 h-4 w-4" />
+                        Admin Dashboard
+                      </DropdownMenuItem>
+                    </>
+                  )}
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
                     onClick={async () => {
@@ -202,7 +216,7 @@ export default function Header() {
                   variant="ghost"
                   className="w-full justify-start"
                   onClick={() => {
-                    setLocation('/orders');
+                    setLocation('/my-orders');
                     setMobileMenuOpen(false);
                   }}
                   data-testid="link-mobile-orders"
@@ -210,6 +224,20 @@ export default function Header() {
                   <Package className="mr-2 h-4 w-4" />
                   My Orders
                 </Button>
+                {isAdmin && (
+                  <Button
+                    variant="ghost"
+                    className="w-full justify-start"
+                    onClick={() => {
+                      setLocation('/admin');
+                      setMobileMenuOpen(false);
+                    }}
+                    data-testid="link-mobile-admin"
+                  >
+                    <Shield className="mr-2 h-4 w-4" />
+                    Admin Dashboard
+                  </Button>
+                )}
                 <Button
                   variant="ghost"
                   className="w-full justify-start"

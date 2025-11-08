@@ -19,6 +19,7 @@ import Cart from "@/pages/Cart";
 import Checkout from "@/pages/Checkout";
 import MyOrders from "@/pages/MyOrders";
 import Wishlist from "@/pages/Wishlist";
+import Profile from "@/pages/Profile";
 import Login from "@/pages/auth/Login";
 import Signup from "@/pages/auth/Signup";
 import AdminLogin from "@/pages/admin/Login";
@@ -49,6 +50,7 @@ function Router() {
       <Route path="/checkout" component={Checkout} />
       <Route path="/my-orders" component={MyOrders} />
       <Route path="/wishlist" component={Wishlist} />
+      <Route path="/profile" component={Profile} />
       <Route path="/login" component={Login} />
       <Route path="/signup" component={Signup} />
       <Route path="/admin/login" component={AdminLogin} />
