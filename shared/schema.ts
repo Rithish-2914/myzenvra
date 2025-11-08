@@ -239,6 +239,34 @@ export type AdminUser = z.infer<typeof adminUserSchema>;
 export type InsertAdminUser = z.infer<typeof insertAdminUserSchema>;
 export type AdminLogin = z.infer<typeof adminLoginSchema>;
 
+// Users Schema (Firebase users synced to Supabase)
+export const userSchema = z.object({
+  id: z.string().uuid(),
+  firebase_uid: z.string(),
+  email: z.string().email(),
+  name: z.string(),
+  role: z.enum(['user', 'admin']),
+  photo_url: z.string().nullable(),
+  created_at: z.string(),
+  updated_at: z.string(),
+});
+
+export const insertUserSchema = z.object({
+  firebase_uid: z.string().min(1, "Firebase UID is required"),
+  email: z.string().email("Valid email required"),
+  name: z.string().min(1, "Name is required"),
+  role: z.enum(['user', 'admin']).default('user'),
+  photo_url: z.string().optional(),
+});
+
+export const updateUserRoleSchema = z.object({
+  role: z.enum(['user', 'admin']),
+});
+
+export type User = z.infer<typeof userSchema>;
+export type InsertUser = z.infer<typeof insertUserSchema>;
+export type UpdateUserRole = z.infer<typeof updateUserRoleSchema>;
+
 // Cart Items Schema
 export const cartItemSchema = z.object({
   id: z.string().uuid(),

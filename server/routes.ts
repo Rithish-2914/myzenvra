@@ -2,6 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { supabase, supabaseAdmin } from "./supabase";
 import { requireAdmin } from "./middleware/auth";
+import { verifyFirebaseToken, initializeFirebaseAdmin } from "./firebase-admin";
 import bcrypt from "bcryptjs";
 import multer from "multer";
 import { ZodError } from "zod";
@@ -19,6 +20,8 @@ import {
   insertProductReviewSchema,
   insertOrderEventSchema,
   insertCustomerMessageSchema,
+  insertUserSchema,
+  updateUserRoleSchema,
 } from "@shared/schema";
 
 // Configure multer for file uploads
@@ -34,6 +37,9 @@ function handleError(error: any, res: any) {
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  
+  // Initialize Firebase Admin for token verification
+  initializeFirebaseAdmin();
   
   // ============ CATEGORIES ============
   
@@ -426,6 +432,122 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ============ USER MANAGEMENT (Firebase Sync) ============
+  
+  // Sync Firebase user to Supabase
+  app.post("/api/users/sync", async (req, res) => {
+    try {
+      const { idToken } = req.body;
+
+      if (!idToken) {
+        return res.status(400).json({ error: "Firebase ID token is required" });
+      }
+
+      // Verify Firebase token
+      const decodedToken = await verifyFirebaseToken(idToken);
+      if (!decodedToken) {
+        return res.status(401).json({ error: "Invalid Firebase token" });
+      }
+
+      // Extract user data from token
+      const userData = {
+        firebase_uid: decodedToken.uid,
+        email: decodedToken.email || '',
+        name: decodedToken.name || decodedToken.email?.split('@')[0] || 'User',
+        photo_url: decodedToken.picture || null,
+      };
+
+      // Check if user exists by email (for migrated admins with placeholder firebase_uid)
+      const { data: existingUser } = await supabaseAdmin
+        .from("users")
+        .select("*")
+        .eq("email", userData.email)
+        .single();
+
+      let result;
+      if (existingUser && existingUser.firebase_uid.startsWith('admin_')) {
+        // Update existing admin user's firebase_uid (migration from admin_users table)
+        const { data, error } = await supabaseAdmin
+          .from("users")
+          .update({
+            firebase_uid: userData.firebase_uid,
+            name: userData.name,
+            photo_url: userData.photo_url,
+          })
+          .eq("email", userData.email)
+          .select()
+          .single();
+
+        if (error) throw error;
+        result = data;
+      } else {
+        // Upsert user (insert or update if firebase_uid exists)
+        const { data, error } = await supabaseAdmin
+          .from("users")
+          .upsert(
+            {
+              firebase_uid: userData.firebase_uid,
+              email: userData.email,
+              name: userData.name,
+              photo_url: userData.photo_url,
+            },
+            {
+              onConflict: 'firebase_uid',
+              ignoreDuplicates: false
+            }
+          )
+          .select()
+          .single();
+
+        if (error) throw error;
+        result = data;
+      }
+
+      res.json({
+        success: true,
+        user: result
+      });
+    } catch (error: any) {
+      console.error("User sync error:", error);
+      handleError(error, res);
+    }
+  });
+
+  // Get all users (admin only)
+  app.get("/api/admin/users", requireAdmin, async (req, res) => {
+    try {
+      const { data, error } = await supabaseAdmin
+        .from("users")
+        .select("id, firebase_uid, email, name, role, photo_url, created_at, updated_at")
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      res.json(data || []);
+    } catch (error: any) {
+      handleError(error, res);
+    }
+  });
+
+  // Update user role (admin only)
+  app.patch("/api/admin/users/:id", requireAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const validatedData = updateUserRoleSchema.parse(req.body);
+
+      const { data, error } = await supabaseAdmin
+        .from("users")
+        .update({ role: validatedData.role })
+        .eq("id", id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      res.json(data);
+    } catch (error: any) {
+      handleError(error, res);
+    }
+  });
+
   // ============ ADMIN AUTHENTICATION ============
   
   // Admin login
@@ -490,16 +612,89 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Check admin session
-  app.get("/api/admin/session", (req, res) => {
-    if (req.session?.adminId) {
+  // Firebase user admin authentication (for users promoted to admin)
+  app.post("/api/admin/auth-firebase", async (req, res) => {
+    try {
+      const { idToken } = req.body;
+
+      if (!idToken) {
+        return res.status(400).json({ error: "Firebase ID token is required" });
+      }
+
+      // Verify Firebase token
+      const decodedToken = await verifyFirebaseToken(idToken);
+      if (!decodedToken) {
+        return res.status(401).json({ error: "Invalid Firebase token" });
+      }
+
+      // Check if user has admin role in users table
+      const { data: user, error } = await supabaseAdmin
+        .from("users")
+        .select("*")
+        .eq("firebase_uid", decodedToken.uid)
+        .single();
+
+      if (error || !user || user.role !== 'admin') {
+        return res.status(403).json({ error: "Not authorized as admin" });
+      }
+
+      // Set admin session
+      if (req.session) {
+        req.session.userId = user.id;
+        req.session.adminEmail = user.email;
+        req.session.adminName = user.name;
+        await new Promise<void>((resolve, reject) => {
+          req.session!.save((err) => {
+            if (err) reject(err);
+            else resolve();
+          });
+        });
+      }
+
       res.json({
-        authenticated: true,
-        adminId: req.session.adminId,
-        adminEmail: req.session.adminEmail,
-        adminName: req.session.adminName,
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
       });
-    } else {
+    } catch (error: any) {
+      handleError(error, res);
+    }
+  });
+
+  // Check admin session
+  app.get("/api/admin/session", async (req, res) => {
+    try {
+      // Check legacy admin_users session
+      if (req.session?.adminId) {
+        return res.json({
+          authenticated: true,
+          adminId: req.session.adminId,
+          adminEmail: req.session.adminEmail,
+          adminName: req.session.adminName,
+        });
+      }
+
+      // Check new users table session
+      if (req.session?.userId) {
+        const { data: user, error } = await supabaseAdmin
+          .from("users")
+          .select("role")
+          .eq("id", req.session.userId)
+          .single();
+
+        if (!error && user && user.role === 'admin') {
+          return res.json({
+            authenticated: true,
+            userId: req.session.userId,
+            adminEmail: req.session.adminEmail,
+            adminName: req.session.adminName,
+          });
+        }
+      }
+
+      res.json({ authenticated: false });
+    } catch (error) {
       res.json({ authenticated: false });
     }
   });

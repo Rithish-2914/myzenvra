@@ -28,6 +28,7 @@ import AdminCategories from "@/pages/admin/Categories";
 import AdminCustomizedGifts from "@/pages/admin/CustomizedGifts";
 import AdminOrders from "@/pages/admin/Orders";
 import AdminMessages from "@/pages/admin/Messages";
+import AdminUsers from "@/pages/admin/Users";
 import AdminAnalytics from "@/pages/admin/Analytics";
 import NotFound from "@/pages/not-found";
 
@@ -57,6 +58,7 @@ function Router() {
       <Route path="/admin/customized-gifts" component={AdminCustomizedGifts} />
       <Route path="/admin/orders" component={AdminOrders} />
       <Route path="/admin/messages" component={AdminMessages} />
+      <Route path="/admin/users" component={AdminUsers} />
       <Route path="/admin/analytics" component={AdminAnalytics} />
       <Route component={NotFound} />
     </Switch>

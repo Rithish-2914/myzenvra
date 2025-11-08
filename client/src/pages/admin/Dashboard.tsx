@@ -43,7 +43,8 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     { name: "Orders", path: "/admin/orders", icon: ShoppingCart },
     { name: "Customizations", path: "/admin/customizations", icon: Settings },
     { name: "Inquiries", path: "/admin/inquiries", icon: MessageSquare },
-    { name: "Analytics", path: "/admin/analytics", icon: Users },
+    { name: "Users", path: "/admin/users", icon: Users },
+    { name: "Analytics", path: "/admin/analytics", icon: TrendingUp },
   ];
 
   return (

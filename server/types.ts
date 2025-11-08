@@ -5,5 +5,6 @@ declare module 'express-session' {
     adminId?: string;
     adminEmail?: string;
     adminName?: string;
+    userId?: string; // For Firebase users with admin role
   }
 }

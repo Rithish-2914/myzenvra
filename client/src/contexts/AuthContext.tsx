@@ -40,8 +40,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setUser(user);
+      
+      // Sync user to Supabase when authenticated
+      if (user) {
+        try {
+          const idToken = await user.getIdToken();
+          await fetch('/api/users/sync', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ idToken })
+          });
+        } catch (error) {
+          console.error('Failed to sync user to Supabase:', error);
+        }
+      }
+      
       setLoading(false);
     });
 
