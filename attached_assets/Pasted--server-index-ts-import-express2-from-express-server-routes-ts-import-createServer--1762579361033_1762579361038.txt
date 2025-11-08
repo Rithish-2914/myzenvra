@@ -1,0 +1,741 @@
+// server/index.ts
+import express2 from "express";
+
+// server/routes.ts
+import { createServer } from "http";
+
+// server/supabase.ts
+import { createClient } from "@supabase/supabase-js";
+var SUPABASE_URL = process.env.SUPABASE_URL || "https://placeholder.supabase.co";
+var SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || "placeholder-anon-key";
+var SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+if (!process.env.SUPABASE_URL || !process.env.SUPABASE_ANON_KEY) {
+  console.warn("\u26A0\uFE0F  Missing Supabase environment variables. Please add SUPABASE_URL, SUPABASE_ANON_KEY, and SUPABASE_SERVICE_ROLE_KEY to your secrets.");
+  console.warn("\u26A0\uFE0F  See SETUP.md for configuration instructions.");
+}
+var supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+var supabaseAdmin = SUPABASE_SERVICE_ROLE_KEY ? createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY) : supabase;
+
+// server/middleware/auth.ts
+function requireAdmin(req, res, next) {
+  if (!req.session?.adminId) {
+    return res.status(401).json({ error: "Unauthorized - Admin access required" });
+  }
+  next();
+}
+
+// server/routes.ts
+import bcrypt from "bcryptjs";
+import multer from "multer";
+import { ZodError } from "zod";
+
+// shared/schema.ts
+import { z } from "zod";
+var categorySchema = z.object({
+  id: z.string().uuid(),
+  name: z.string(),
+  slug: z.string(),
+  description: z.string().nullable(),
+  image_url: z.string().nullable(),
+  created_at: z.string(),
+  updated_at: z.string()
+});
+var insertCategorySchema = z.object({
+  name: z.string().min(1, "Category name is required"),
+  slug: z.string().min(1, "Slug is required"),
+  description: z.string().optional(),
+  image_url: z.string().optional()
+});
+var productSchema = z.object({
+  id: z.string().uuid(),
+  name: z.string(),
+  slug: z.string(),
+  description: z.string().nullable(),
+  price: z.number(),
+  category_id: z.string().uuid().nullable(),
+  image_url: z.string(),
+  customizable: z.boolean(),
+  stock_quantity: z.number(),
+  sizes: z.array(z.string()),
+  colors: z.array(z.string()),
+  featured: z.boolean(),
+  active: z.boolean(),
+  created_at: z.string(),
+  updated_at: z.string()
+});
+var insertProductSchema = z.object({
+  name: z.string().min(1, "Product name is required"),
+  slug: z.string().min(1, "Slug is required"),
+  description: z.string().optional(),
+  price: z.number().positive("Price must be positive"),
+  category_id: z.string().uuid().optional(),
+  image_url: z.string().min(1, "Image URL is required"),
+  customizable: z.boolean().default(false),
+  stock_quantity: z.number().int().nonnegative().default(0),
+  sizes: z.array(z.string()).default(["S", "M", "L", "XL"]),
+  colors: z.array(z.string()).default(["Beige", "Black", "White"]),
+  featured: z.boolean().default(false),
+  active: z.boolean().default(true)
+});
+var orderSchema = z.object({
+  id: z.string().uuid(),
+  user_email: z.string().email(),
+  user_name: z.string(),
+  phone: z.string(),
+  shipping_address: z.object({
+    address: z.string(),
+    city: z.string(),
+    state: z.string(),
+    pincode: z.string()
+  }),
+  items: z.array(z.object({
+    product_id: z.string(),
+    name: z.string(),
+    price: z.number(),
+    quantity: z.number(),
+    size: z.string().optional(),
+    color: z.string().optional()
+  })),
+  total_amount: z.number(),
+  status: z.string(),
+  created_at: z.string(),
+  updated_at: z.string()
+});
+var insertOrderSchema = z.object({
+  user_email: z.string().email("Valid email required"),
+  user_name: z.string().min(1, "Name is required"),
+  phone: z.string().min(10, "Valid phone number required"),
+  shipping_address: z.object({
+    address: z.string().min(1, "Address is required"),
+    city: z.string().min(1, "City is required"),
+    state: z.string().min(1, "State is required"),
+    pincode: z.string().min(6, "Valid pincode required")
+  }),
+  items: z.array(z.object({
+    product_id: z.string(),
+    name: z.string(),
+    price: z.number(),
+    quantity: z.number(),
+    size: z.string().optional(),
+    color: z.string().optional()
+  })),
+  total_amount: z.number().positive("Total amount must be positive"),
+  status: z.string().default("pending")
+});
+var customizationSchema = z.object({
+  id: z.string().uuid(),
+  product_id: z.string().uuid().nullable(),
+  user_email: z.string().nullable(),
+  custom_text: z.string().nullable(),
+  custom_image_url: z.string().nullable(),
+  selected_color: z.string().nullable(),
+  selected_size: z.string().nullable(),
+  price: z.number(),
+  status: z.string(),
+  created_at: z.string()
+});
+var insertCustomizationSchema = z.object({
+  product_id: z.string().uuid().optional(),
+  user_email: z.string().email().optional(),
+  custom_text: z.string().optional(),
+  custom_image_url: z.string().optional(),
+  selected_color: z.string().optional(),
+  selected_size: z.string().optional(),
+  price: z.number().positive("Price must be positive"),
+  status: z.string().default("pending")
+});
+var contactInquirySchema = z.object({
+  id: z.string().uuid(),
+  name: z.string(),
+  email: z.string(),
+  subject: z.string(),
+  message: z.string(),
+  inquiry_type: z.string(),
+  status: z.string(),
+  created_at: z.string()
+});
+var insertContactInquirySchema = z.object({
+  name: z.string().min(1, "Name is required"),
+  email: z.string().email("Valid email required"),
+  subject: z.string().min(1, "Subject is required"),
+  message: z.string().min(10, "Message must be at least 10 characters"),
+  inquiry_type: z.string().default("general")
+});
+var bulkOrderSchema = z.object({
+  id: z.string().uuid(),
+  organization_name: z.string(),
+  contact_name: z.string(),
+  email: z.string(),
+  phone: z.string(),
+  quantity: z.number(),
+  details: z.string().nullable(),
+  status: z.string(),
+  created_at: z.string()
+});
+var insertBulkOrderSchema = z.object({
+  organization_name: z.string().min(1, "Organization name is required"),
+  contact_name: z.string().min(1, "Contact name is required"),
+  email: z.string().email("Valid email required"),
+  phone: z.string().min(10, "Valid phone number required"),
+  quantity: z.number().int().positive("Quantity must be positive"),
+  details: z.string().optional()
+});
+var userActivitySchema = z.object({
+  id: z.string().uuid(),
+  user_email: z.string().nullable(),
+  user_id: z.string().nullable(),
+  page_visited: z.string().nullable(),
+  action: z.string().nullable(),
+  metadata: z.record(z.any()).nullable(),
+  ip_address: z.string().nullable(),
+  user_agent: z.string().nullable(),
+  created_at: z.string()
+});
+var insertUserActivitySchema = z.object({
+  user_email: z.string().optional(),
+  user_id: z.string().optional(),
+  page_visited: z.string().optional(),
+  action: z.string().optional(),
+  metadata: z.record(z.any()).optional(),
+  ip_address: z.string().optional(),
+  user_agent: z.string().optional()
+});
+var adminUserSchema = z.object({
+  id: z.string().uuid(),
+  email: z.string(),
+  password_hash: z.string(),
+  name: z.string(),
+  role: z.string(),
+  created_at: z.string()
+});
+var insertAdminUserSchema = z.object({
+  email: z.string().email("Valid email required"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+  name: z.string().min(1, "Name is required"),
+  role: z.string().default("admin")
+});
+var adminLoginSchema = z.object({
+  email: z.string().email("Valid email required"),
+  password: z.string().min(1, "Password is required")
+});
+
+// server/routes.ts
+var upload = multer({ storage: multer.memoryStorage() });
+function handleError(error, res) {
+  if (error instanceof ZodError) {
+    return res.status(400).json({ error: "Validation error", details: error.errors });
+  }
+  console.error("Server error:", error);
+  res.status(500).json({ error: error.message || "Internal server error" });
+}
+async function registerRoutes(app2) {
+  app2.get("/api/categories", async (req, res) => {
+    try {
+      const { data, error } = await supabase.from("categories").select("*").order("name");
+      if (error) throw error;
+      res.json(data || []);
+    } catch (error) {
+      handleError(error, res);
+    }
+  });
+  app2.post("/api/categories", requireAdmin, async (req, res) => {
+    try {
+      const validatedData = insertCategorySchema.parse(req.body);
+      const { data, error } = await supabaseAdmin.from("categories").insert(validatedData).select().single();
+      if (error) throw error;
+      res.json(data);
+    } catch (error) {
+      handleError(error, res);
+    }
+  });
+  app2.put("/api/categories/:id", requireAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const validatedData = insertCategorySchema.partial().parse(req.body);
+      const { data, error } = await supabaseAdmin.from("categories").update(validatedData).eq("id", id).select().single();
+      if (error) throw error;
+      res.json(data);
+    } catch (error) {
+      handleError(error, res);
+    }
+  });
+  app2.delete("/api/categories/:id", requireAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { error } = await supabaseAdmin.from("categories").delete().eq("id", id);
+      if (error) throw error;
+      res.json({ success: true });
+    } catch (error) {
+      handleError(error, res);
+    }
+  });
+  app2.get("/api/products", async (req, res) => {
+    try {
+      const { category, all } = req.query;
+      const isAdmin = req.session?.adminId;
+      let query = supabase.from("products").select("*, categories(*)");
+      if (!isAdmin || all !== "true") {
+        query = query.eq("active", true);
+      }
+      if (category) {
+        query = query.eq("category_id", category);
+      }
+      query = query.order("created_at", { ascending: false });
+      const { data, error } = await query;
+      if (error) throw error;
+      res.json(data || []);
+    } catch (error) {
+      handleError(error, res);
+    }
+  });
+  app2.get("/api/products/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { data, error } = await supabase.from("products").select("*, categories(*)").eq("id", id).single();
+      if (error) throw error;
+      res.json(data);
+    } catch (error) {
+      handleError(error, res);
+    }
+  });
+  app2.post("/api/products", requireAdmin, async (req, res) => {
+    try {
+      const validatedData = insertProductSchema.parse(req.body);
+      const { data, error } = await supabaseAdmin.from("products").insert(validatedData).select().single();
+      if (error) throw error;
+      res.json(data);
+    } catch (error) {
+      handleError(error, res);
+    }
+  });
+  app2.put("/api/products/:id", requireAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const validatedData = insertProductSchema.partial().parse(req.body);
+      const { data, error } = await supabaseAdmin.from("products").update(validatedData).eq("id", id).select().single();
+      if (error) throw error;
+      res.json(data);
+    } catch (error) {
+      handleError(error, res);
+    }
+  });
+  app2.delete("/api/products/:id", requireAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { error } = await supabaseAdmin.from("products").delete().eq("id", id);
+      if (error) throw error;
+      res.json({ success: true });
+    } catch (error) {
+      handleError(error, res);
+    }
+  });
+  app2.post("/api/orders", async (req, res) => {
+    try {
+      const validatedData = insertOrderSchema.parse(req.body);
+      const { data, error } = await supabase.from("orders").insert(validatedData).select().single();
+      if (error) throw error;
+      res.json(data);
+    } catch (error) {
+      handleError(error, res);
+    }
+  });
+  app2.get("/api/orders", requireAdmin, async (req, res) => {
+    try {
+      const { data, error } = await supabaseAdmin.from("orders").select("*").order("created_at", { ascending: false });
+      if (error) throw error;
+      res.json(data || []);
+    } catch (error) {
+      handleError(error, res);
+    }
+  });
+  app2.put("/api/orders/:id", requireAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { status } = req.body;
+      if (!status) {
+        return res.status(400).json({ error: "Status is required" });
+      }
+      const { data, error } = await supabaseAdmin.from("orders").update({ status }).eq("id", id).select().single();
+      if (error) throw error;
+      res.json(data);
+    } catch (error) {
+      handleError(error, res);
+    }
+  });
+  app2.post("/api/customizations", async (req, res) => {
+    try {
+      const validatedData = insertCustomizationSchema.parse(req.body);
+      const { data, error } = await supabase.from("customizations").insert(validatedData).select().single();
+      if (error) throw error;
+      res.json(data);
+    } catch (error) {
+      handleError(error, res);
+    }
+  });
+  app2.get("/api/customizations", requireAdmin, async (req, res) => {
+    try {
+      const { data, error } = await supabaseAdmin.from("customizations").select("*, products(*)").order("created_at", { ascending: false });
+      if (error) throw error;
+      res.json(data || []);
+    } catch (error) {
+      handleError(error, res);
+    }
+  });
+  app2.post("/api/contact", async (req, res) => {
+    try {
+      const validatedData = insertContactInquirySchema.parse(req.body);
+      const { data, error } = await supabase.from("contact_inquiries").insert(validatedData).select().single();
+      if (error) throw error;
+      res.json(data);
+    } catch (error) {
+      handleError(error, res);
+    }
+  });
+  app2.get("/api/contact", requireAdmin, async (req, res) => {
+    try {
+      const { data, error } = await supabaseAdmin.from("contact_inquiries").select("*").order("created_at", { ascending: false });
+      if (error) throw error;
+      res.json(data || []);
+    } catch (error) {
+      handleError(error, res);
+    }
+  });
+  app2.post("/api/bulk-orders", async (req, res) => {
+    try {
+      const validatedData = insertBulkOrderSchema.parse(req.body);
+      const { data, error } = await supabase.from("bulk_orders").insert(validatedData).select().single();
+      if (error) throw error;
+      res.json(data);
+    } catch (error) {
+      handleError(error, res);
+    }
+  });
+  app2.get("/api/bulk-orders", requireAdmin, async (req, res) => {
+    try {
+      const { data, error } = await supabaseAdmin.from("bulk_orders").select("*").order("created_at", { ascending: false });
+      if (error) throw error;
+      res.json(data || []);
+    } catch (error) {
+      handleError(error, res);
+    }
+  });
+  app2.post("/api/activity", async (req, res) => {
+    try {
+      const validatedData = insertUserActivitySchema.parse(req.body);
+      const activityData = {
+        ...validatedData,
+        ip_address: req.ip,
+        user_agent: req.get("user-agent")
+      };
+      const { data, error } = await supabase.from("user_activity").insert(activityData).select().single();
+      if (error) throw error;
+      res.json(data);
+    } catch (error) {
+      handleError(error, res);
+    }
+  });
+  app2.get("/api/activity", requireAdmin, async (req, res) => {
+    try {
+      const { limit = 100 } = req.query;
+      const { data, error } = await supabaseAdmin.from("user_activity").select("*").order("created_at", { ascending: false }).limit(Number(limit));
+      if (error) throw error;
+      res.json(data || []);
+    } catch (error) {
+      handleError(error, res);
+    }
+  });
+  app2.post("/api/admin/login", async (req, res) => {
+    try {
+      const validatedData = adminLoginSchema.parse(req.body);
+      const { data: admin, error } = await supabaseAdmin.from("admin_users").select("*").eq("email", validatedData.email).single();
+      if (error || !admin) {
+        return res.status(401).json({ error: "Invalid credentials" });
+      }
+      const isValidPassword = await bcrypt.compare(
+        validatedData.password,
+        admin.password_hash
+      );
+      if (!isValidPassword) {
+        return res.status(401).json({ error: "Invalid credentials" });
+      }
+      if (req.session) {
+        req.session.adminId = admin.id;
+        req.session.adminEmail = admin.email;
+        req.session.adminName = admin.name;
+        await new Promise((resolve, reject) => {
+          req.session.save((err) => {
+            if (err) reject(err);
+            else resolve();
+          });
+        });
+      }
+      res.json({
+        id: admin.id,
+        email: admin.email,
+        name: admin.name,
+        role: admin.role
+      });
+    } catch (error) {
+      handleError(error, res);
+    }
+  });
+  app2.post("/api/admin/logout", (req, res) => {
+    if (req.session) {
+      req.session.destroy((err) => {
+        if (err) {
+          return res.status(500).json({ error: "Failed to logout" });
+        }
+        res.json({ success: true });
+      });
+    } else {
+      res.json({ success: true });
+    }
+  });
+  app2.get("/api/admin/session", (req, res) => {
+    if (req.session?.adminId) {
+      res.json({
+        authenticated: true,
+        adminId: req.session.adminId,
+        adminEmail: req.session.adminEmail,
+        adminName: req.session.adminName
+      });
+    } else {
+      res.json({ authenticated: false });
+    }
+  });
+  app2.get("/api/admin/analytics", requireAdmin, async (req, res) => {
+    try {
+      const [productsResult, ordersResult, customizationsResult, contactResult, bulkOrdersResult] = await Promise.all([
+        supabaseAdmin.from("products").select("*", { count: "exact", head: true }),
+        supabaseAdmin.from("orders").select("*", { count: "exact", head: true }),
+        supabaseAdmin.from("customizations").select("*", { count: "exact", head: true }),
+        supabaseAdmin.from("contact_inquiries").select("*", { count: "exact", head: true }),
+        supabaseAdmin.from("bulk_orders").select("*", { count: "exact", head: true })
+      ]);
+      const { data: recentOrders } = await supabaseAdmin.from("orders").select("*").order("created_at", { ascending: false }).limit(10);
+      const { data: orders } = await supabaseAdmin.from("orders").select("total_amount");
+      const totalRevenue = orders?.reduce((sum, order) => sum + Number(order.total_amount), 0) || 0;
+      const { data: recentActivity } = await supabaseAdmin.from("user_activity").select("*").order("created_at", { ascending: false }).limit(50);
+      res.json({
+        counts: {
+          products: productsResult.count || 0,
+          orders: ordersResult.count || 0,
+          customizations: customizationsResult.count || 0,
+          contactInquiries: contactResult.count || 0,
+          bulkOrders: bulkOrdersResult.count || 0
+        },
+        totalRevenue,
+        recentOrders: recentOrders || [],
+        recentActivity: recentActivity || []
+      });
+    } catch (error) {
+      handleError(error, res);
+    }
+  });
+  app2.post("/api/upload", requireAdmin, upload.single("file"), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: "No file uploaded" });
+      }
+      const { bucket = "product-images" } = req.body;
+      const fileName = `${Date.now()}-${req.file.originalname}`;
+      const { data, error } = await supabaseAdmin.storage.from(bucket).upload(fileName, req.file.buffer, {
+        contentType: req.file.mimetype,
+        upsert: false
+      });
+      if (error) throw error;
+      const { data: { publicUrl } } = supabaseAdmin.storage.from(bucket).getPublicUrl(data.path);
+      res.json({ url: publicUrl, path: data.path });
+    } catch (error) {
+      handleError(error, res);
+    }
+  });
+  app2.post("/api/upload-base64", requireAdmin, async (req, res) => {
+    try {
+      const { file, bucket = "product-images", fileName } = req.body;
+      if (!file || !fileName) {
+        return res.status(400).json({ error: "File and fileName required" });
+      }
+      const base64Data = file.split(",")[1] || file;
+      const buffer = Buffer.from(base64Data, "base64");
+      const uniqueFileName = `${Date.now()}-${fileName}`;
+      const { data, error } = await supabaseAdmin.storage.from(bucket).upload(uniqueFileName, buffer, {
+        contentType: "image/jpeg",
+        upsert: false
+      });
+      if (error) throw error;
+      const { data: { publicUrl } } = supabaseAdmin.storage.from(bucket).getPublicUrl(data.path);
+      res.json({ url: publicUrl, path: data.path });
+    } catch (error) {
+      handleError(error, res);
+    }
+  });
+  const httpServer = createServer(app2);
+  return httpServer;
+}
+
+// server/vite.ts
+import express from "express";
+import fs from "fs";
+import path2 from "path";
+import { createServer as createViteServer, createLogger } from "vite";
+
+// vite.config.ts
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
+import path from "path";
+import runtimeErrorOverlay from "@replit/vite-plugin-runtime-error-modal";
+var vite_config_default = defineConfig({
+  plugins: [
+    react(),
+    runtimeErrorOverlay(),
+    ...process.env.NODE_ENV !== "production" && process.env.REPL_ID !== void 0 ? [
+      await import("@replit/vite-plugin-cartographer").then(
+        (m) => m.cartographer()
+      ),
+      await import("@replit/vite-plugin-dev-banner").then(
+        (m) => m.devBanner()
+      )
+    ] : []
+  ],
+  resolve: {
+    alias: {
+      "@": path.resolve(import.meta.dirname, "client", "src"),
+      "@shared": path.resolve(import.meta.dirname, "shared"),
+      "@assets": path.resolve(import.meta.dirname, "attached_assets")
+    }
+  },
+  root: path.resolve(import.meta.dirname, "client"),
+  build: {
+    outDir: path.resolve(import.meta.dirname, "dist/public"),
+    emptyOutDir: true
+  },
+  server: {
+    fs: {
+      strict: true,
+      deny: ["**/.*"]
+    }
+  }
+});
+
+// server/vite.ts
+import { nanoid } from "nanoid";
+var viteLogger = createLogger();
+function log(message, source = "express") {
+  const formattedTime = (/* @__PURE__ */ new Date()).toLocaleTimeString("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: true
+  });
+  console.log(`${formattedTime} [${source}] ${message}`);
+}
+async function setupVite(app2, server) {
+  const serverOptions = {
+    middlewareMode: true,
+    hmr: { server },
+    allowedHosts: true
+  };
+  const vite = await createViteServer({
+    ...vite_config_default,
+    configFile: false,
+    customLogger: {
+      ...viteLogger,
+      error: (msg, options) => {
+        viteLogger.error(msg, options);
+        process.exit(1);
+      }
+    },
+    server: serverOptions,
+    appType: "custom"
+  });
+  app2.use(vite.middlewares);
+  app2.use("*", async (req, res, next) => {
+    const url = req.originalUrl;
+    try {
+      const clientTemplate = path2.resolve(
+        import.meta.dirname,
+        "..",
+        "client",
+        "index.html"
+      );
+      let template = await fs.promises.readFile(clientTemplate, "utf-8");
+      template = template.replace(
+        `src="/src/main.tsx"`,
+        `src="/src/main.tsx?v=${nanoid()}"`
+      );
+      const page = await vite.transformIndexHtml(url, template);
+      res.status(200).set({ "Content-Type": "text/html" }).end(page);
+    } catch (e) {
+      vite.ssrFixStacktrace(e);
+      next(e);
+    }
+  });
+}
+function serveStatic(app2) {
+  const distPath = path2.resolve(import.meta.dirname, "public");
+  if (!fs.existsSync(distPath)) {
+    throw new Error(
+      `Could not find the build directory: ${distPath}, make sure to build the client first`
+    );
+  }
+  app2.use(express.static(distPath));
+  app2.use("*", (_req, res) => {
+    res.sendFile(path2.resolve(distPath, "index.html"));
+  });
+}
+
+// server/index.ts
+var app = express2();
+app.use(express2.json({
+  verify: (req, _res, buf) => {
+    req.rawBody = buf;
+  }
+}));
+app.use(express2.urlencoded({ extended: false }));
+app.use((req, res, next) => {
+  const start = Date.now();
+  const path3 = req.path;
+  let capturedJsonResponse = void 0;
+  const originalResJson = res.json;
+  res.json = function(bodyJson, ...args) {
+    capturedJsonResponse = bodyJson;
+    return originalResJson.apply(res, [bodyJson, ...args]);
+  };
+  res.on("finish", () => {
+    const duration = Date.now() - start;
+    if (path3.startsWith("/api")) {
+      let logLine = `${req.method} ${path3} ${res.statusCode} in ${duration}ms`;
+      if (capturedJsonResponse) {
+        logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
+      }
+      if (logLine.length > 80) {
+        logLine = logLine.slice(0, 79) + "\u2026";
+      }
+      log(logLine);
+    }
+  });
+  next();
+});
+(async () => {
+  const server = await registerRoutes(app);
+  app.use((err, _req, res, _next) => {
+    const status = err.status || err.statusCode || 500;
+    const message = err.message || "Internal Server Error";
+    res.status(status).json({ message });
+    throw err;
+  });
+  if (app.get("env") === "development") {
+    await setupVite(app, server);
+  } else {
+    serveStatic(app);
+  }
+  const port = parseInt(process.env.PORT || "5000", 10);
+  server.listen({
+    port,
+    host: "0.0.0.0",
+    reusePort: true
+  }, () => {
+    log(`serving on port ${port}`);
+  });
+})();
