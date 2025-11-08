@@ -9,6 +9,8 @@ import Home from "@/pages/Home";
 import Shop from "@/pages/Shop";
 import CustomizedGifts from "@/pages/CustomizedGifts";
 import Customize from "@/pages/Customize";
+import CustomizeChoice from "@/pages/CustomizeChoice";
+import CustomPrintOrder from "@/pages/CustomPrintOrder";
 import About from "@/pages/About";
 import Blog from "@/pages/Blog";
 import FAQ from "@/pages/FAQ";
@@ -40,7 +42,8 @@ function Router() {
       <Route path="/" component={Home} />
       <Route path="/shop" component={Shop} />
       <Route path="/customized-gifts" component={CustomizedGifts} />
-      <Route path="/customize" component={Customize} />
+      <Route path="/customize" component={CustomizeChoice} />
+      <Route path="/custom-print" component={CustomPrintOrder} />
       <Route path="/about" component={About} />
       <Route path="/blog" component={Blog} />
       <Route path="/faq" component={FAQ} />

@@ -9,8 +9,8 @@ import { ZodError } from "zod";
 import {
   insertCategorySchema,
   insertProductSchema,
+  updateProductSchema,
   insertOrderSchema,
-  insertCustomizationSchema,
   insertContactInquirySchema,
   insertBulkOrderSchema,
   insertUserActivitySchema,
@@ -23,6 +23,9 @@ import {
   insertUserSchema,
   updateUserRoleSchema,
   insertAnnouncementSchema,
+  insertCustomPrintOrderSchema,
+  insertCategoryProductSchema,
+  insertProductCustomizationSchema,
 } from "@shared/schema";
 
 // Configure multer for file uploads
@@ -283,15 +286,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // ============ CUSTOMIZATIONS ============
+  // ============ PRODUCT CUSTOMIZATIONS (Type 2) ============
   
-  // Create customization (public)
-  app.post("/api/customizations", async (req, res) => {
+  // Create product customization (public)
+  app.post("/api/product-customizations", async (req, res) => {
     try {
-      const validatedData = insertCustomizationSchema.parse(req.body);
+      const validatedData = insertProductCustomizationSchema.parse(req.body);
 
       const { data, error } = await supabase
-        .from("customizations")
+        .from("product_customizations")
         .insert(validatedData)
         .select()
         .single();
@@ -303,11 +306,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get all customizations (admin only)
-  app.get("/api/customizations", requireAdmin, async (req, res) => {
+  // Get all product customizations (admin only)
+  app.get("/api/admin/product-customizations", requireAdmin, async (req, res) => {
     try {
       const { data, error } = await supabaseAdmin
-        .from("customizations")
+        .from("product_customizations")
         .select("*, products(*)")
         .order("created_at", { ascending: false });
 
@@ -774,10 +777,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/admin/analytics", requireAdmin, async (req, res) => {
     try {
       // Get counts using count queries
-      const [productsResult, ordersResult, customizationsResult, contactResult, bulkOrdersResult] = await Promise.all([
+      const [productsResult, ordersResult, customPrintOrdersResult, contactResult, bulkOrdersResult] = await Promise.all([
         supabaseAdmin.from("products").select("*", { count: "exact", head: true }),
         supabaseAdmin.from("orders").select("*", { count: "exact", head: true }),
-        supabaseAdmin.from("customizations").select("*", { count: "exact", head: true }),
+        supabaseAdmin.from("custom_print_orders").select("*", { count: "exact", head: true }),
         supabaseAdmin.from("contact_inquiries").select("*", { count: "exact", head: true }),
         supabaseAdmin.from("bulk_orders").select("*", { count: "exact", head: true }),
       ]);
@@ -807,7 +810,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         counts: {
           products: productsResult.count || 0,
           orders: ordersResult.count || 0,
-          customizations: customizationsResult.count || 0,
+          customPrintOrders: customPrintOrdersResult.count || 0,
           contactInquiries: contactResult.count || 0,
           bulkOrders: bulkOrdersResult.count || 0,
         },
@@ -1750,6 +1753,194 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (error) throw error;
       res.json({ success: true });
+    } catch (error: any) {
+      handleError(error, res);
+    }
+  });
+
+  // ============ CUSTOM PRINT ORDERS ============
+  
+  // Create custom print order (public - customer submission)
+  app.post("/api/custom-print-orders", async (req, res) => {
+    try {
+      const validatedData = insertCustomPrintOrderSchema.parse(req.body);
+      
+      const { data, error } = await supabase
+        .from("custom_print_orders")
+        .insert(validatedData)
+        .select()
+        .single();
+
+      if (error) throw error;
+      res.json(data);
+    } catch (error: any) {
+      handleError(error, res);
+    }
+  });
+
+  // Get all custom print orders (admin only)
+  app.get("/api/admin/custom-print-orders", requireAdmin, async (req, res) => {
+    try {
+      const { status } = req.query;
+      
+      let query = supabase
+        .from("custom_print_orders")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (status) {
+        query = query.eq("status", status);
+      }
+
+      const { data, error } = await query;
+
+      if (error) throw error;
+      res.json(data || []);
+    } catch (error: any) {
+      handleError(error, res);
+    }
+  });
+
+  // Get single custom print order (admin only)
+  app.get("/api/admin/custom-print-orders/:id", requireAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+
+      const { data, error } = await supabase
+        .from("custom_print_orders")
+        .select("*")
+        .eq("id", id)
+        .single();
+
+      if (error) throw error;
+      res.json(data);
+    } catch (error: any) {
+      handleError(error, res);
+    }
+  });
+
+  // Update custom print order (admin only)
+  app.put("/api/admin/custom-print-orders/:id", requireAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const updates = req.body;
+
+      const { data, error } = await supabaseAdmin
+        .from("custom_print_orders")
+        .update({ ...updates, updated_at: new Date().toISOString() })
+        .eq("id", id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      res.json(data);
+    } catch (error: any) {
+      handleError(error, res);
+    }
+  });
+
+  // Delete custom print order (admin only)
+  app.delete("/api/admin/custom-print-orders/:id", requireAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+
+      const { error } = await supabaseAdmin
+        .from("custom_print_orders")
+        .delete()
+        .eq("id", id);
+
+      if (error) throw error;
+      res.json({ success: true });
+    } catch (error: any) {
+      handleError(error, res);
+    }
+  });
+
+  // ============ CATEGORY-PRODUCT RELATIONSHIPS ============
+  
+  // Get products for a category (public)
+  app.get("/api/categories/:categoryId/products", async (req, res) => {
+    try {
+      const { categoryId } = req.params;
+
+      const { data, error } = await supabase
+        .from("category_products")
+        .select(`
+          product_id,
+          display_order,
+          products (*)
+        `)
+        .eq("category_id", categoryId)
+        .order("display_order");
+
+      if (error) throw error;
+      
+      const products = data?.map((item: any) => item.products) || [];
+      res.json(products);
+    } catch (error: any) {
+      handleError(error, res);
+    }
+  });
+
+  // Add product to category (admin only)
+  app.post("/api/admin/categories/:categoryId/products", requireAdmin, async (req, res) => {
+    try {
+      const { categoryId } = req.params;
+      const { product_id, display_order } = req.body;
+
+      const validatedData = insertCategoryProductSchema.parse({
+        category_id: categoryId,
+        product_id,
+        display_order,
+      });
+
+      const { data, error } = await supabaseAdmin
+        .from("category_products")
+        .insert(validatedData)
+        .select()
+        .single();
+
+      if (error) throw error;
+      res.json(data);
+    } catch (error: any) {
+      handleError(error, res);
+    }
+  });
+
+  // Remove product from category (admin only)
+  app.delete("/api/admin/categories/:categoryId/products/:productId", requireAdmin, async (req, res) => {
+    try {
+      const { categoryId, productId } = req.params;
+
+      const { error } = await supabaseAdmin
+        .from("category_products")
+        .delete()
+        .eq("category_id", categoryId)
+        .eq("product_id", productId);
+
+      if (error) throw error;
+      res.json({ success: true });
+    } catch (error: any) {
+      handleError(error, res);
+    }
+  });
+
+  // Update product display order in category (admin only)
+  app.put("/api/admin/categories/:categoryId/products/:productId", requireAdmin, async (req, res) => {
+    try {
+      const { categoryId, productId } = req.params;
+      const { display_order } = req.body;
+
+      const { data, error } = await supabaseAdmin
+        .from("category_products")
+        .update({ display_order })
+        .eq("category_id", categoryId)
+        .eq("product_id", productId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      res.json(data);
     } catch (error: any) {
       handleError(error, res);
     }

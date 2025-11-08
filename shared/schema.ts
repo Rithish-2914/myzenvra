@@ -57,8 +57,22 @@ export const insertProductSchema = z.object({
   active: z.boolean().default(true),
 });
 
+export const updateProductSchema = z.object({
+  name: z.string().min(1, "Product name is required").optional(),
+  description: z.string().optional(),
+  price: z.number().positive("Price must be positive").optional(),
+  stock_quantity: z.number().int().nonnegative().optional(),
+  category_id: z.string().uuid().nullable().optional(),
+  image_url: z.string().optional(),
+  sizes: z.array(z.string()).optional(),
+  colors: z.array(z.string()).optional(),
+  featured: z.boolean().optional(),
+  active: z.boolean().optional(),
+});
+
 export type Product = z.infer<typeof productSchema>;
 export type InsertProduct = z.infer<typeof insertProductSchema>;
+export type UpdateProduct = z.infer<typeof updateProductSchema>;
 
 // Order Schema
 export const orderSchema = z.object({
@@ -111,33 +125,68 @@ export const insertOrderSchema = z.object({
 export type Order = z.infer<typeof orderSchema>;
 export type InsertOrder = z.infer<typeof insertOrderSchema>;
 
-// Customization Schema
-export const customizationSchema = z.object({
+// Custom Print Order Schema (Type 1: Upload to Admin for Printing)
+export const customPrintOrderSchema = z.object({
   id: z.string().uuid(),
-  product_id: z.string().uuid().nullable(),
-  user_email: z.string().nullable(),
+  customer_name: z.string(),
+  customer_email: z.string(),
+  customer_phone: z.string(),
+  category_type: z.enum(['hoodie', 'tshirt', 'sweatshirt', 'jacket', 'shorts', 'pants']),
   custom_text: z.string().nullable(),
   custom_image_url: z.string().nullable(),
-  selected_color: z.string().nullable(),
+  selected_color: z.string(),
+  selected_size: z.string(),
+  quantity: z.number(),
+  special_instructions: z.string().nullable(),
+  status: z.enum(['pending', 'reviewing', 'approved', 'printing', 'completed', 'cancelled']),
+  admin_notes: z.string().nullable(),
+  estimated_price: z.number().nullable(),
+  final_price: z.number().nullable(),
+  created_at: z.string(),
+  updated_at: z.string(),
+});
+
+export const insertCustomPrintOrderSchema = z.object({
+  customer_name: z.string().min(1, "Name is required"),
+  customer_email: z.string().email("Valid email required"),
+  customer_phone: z.string().min(10, "Valid phone number required"),
+  category_type: z.enum(['hoodie', 'tshirt', 'sweatshirt', 'jacket', 'shorts', 'pants']),
+  custom_text: z.string().optional(),
+  custom_image_url: z.string().optional(),
+  selected_color: z.string().min(1, "Color is required"),
+  selected_size: z.string().min(1, "Size is required"),
+  quantity: z.number().int().positive("Quantity must be at least 1").default(1),
+  special_instructions: z.string().optional(),
+});
+
+export type CustomPrintOrder = z.infer<typeof customPrintOrderSchema>;
+export type InsertCustomPrintOrder = z.infer<typeof insertCustomPrintOrderSchema>;
+
+// Product Customization Schema (Type 2: On-Site Product Customization)
+export const productCustomizationSchema = z.object({
+  id: z.string().uuid(),
+  product_id: z.string().uuid(),
+  customer_email: z.string().nullable(),
+  custom_name: z.string().nullable(),
+  custom_image_url: z.string().nullable(),
   selected_size: z.string().nullable(),
-  price: z.number(),
-  status: z.string(),
+  selected_color: z.string().nullable(),
+  quantity: z.number(),
   created_at: z.string(),
 });
 
-export const insertCustomizationSchema = z.object({
-  product_id: z.string().uuid().optional(),
-  user_email: z.string().email().optional(),
-  custom_text: z.string().optional(),
+export const insertProductCustomizationSchema = z.object({
+  product_id: z.string().uuid(),
+  customer_email: z.string().email().optional(),
+  custom_name: z.string().optional(),
   custom_image_url: z.string().optional(),
-  selected_color: z.string().optional(),
   selected_size: z.string().optional(),
-  price: z.number().nonnegative().default(0).optional(),
-  status: z.string().default("pending"),
+  selected_color: z.string().optional(),
+  quantity: z.number().int().positive().default(1),
 });
 
-export type Customization = z.infer<typeof customizationSchema>;
-export type InsertCustomization = z.infer<typeof insertCustomizationSchema>;
+export type ProductCustomization = z.infer<typeof productCustomizationSchema>;
+export type InsertProductCustomization = z.infer<typeof insertProductCustomizationSchema>;
 
 // Contact Inquiry Schema
 export const contactInquirySchema = z.object({
@@ -408,3 +457,20 @@ export const insertAnnouncementSchema = z.object({
 
 export type Announcement = z.infer<typeof announcementSchema>;
 export type InsertAnnouncement = z.infer<typeof insertAnnouncementSchema>;
+
+// Category-Product Relationship Schema (for manual assignment)
+export const categoryProductSchema = z.object({
+  category_id: z.string().uuid(),
+  product_id: z.string().uuid(),
+  display_order: z.number(),
+  created_at: z.string(),
+});
+
+export const insertCategoryProductSchema = z.object({
+  category_id: z.string().uuid(),
+  product_id: z.string().uuid(),
+  display_order: z.number().int().nonnegative().default(0),
+});
+
+export type CategoryProduct = z.infer<typeof categoryProductSchema>;
+export type InsertCategoryProduct = z.infer<typeof insertCategoryProductSchema>;
