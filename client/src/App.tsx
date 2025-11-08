@@ -3,6 +3,8 @@ import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { AuthProvider } from "@/contexts/AuthContext";
+import { CartProvider } from "@/contexts/CartContext";
 import Home from "@/pages/Home";
 import Shop from "@/pages/Shop";
 import Customize from "@/pages/Customize";
@@ -14,6 +16,8 @@ import CustomerService from "@/pages/CustomerService";
 import BulkOrders from "@/pages/BulkOrders";
 import Cart from "@/pages/Cart";
 import Checkout from "@/pages/Checkout";
+import Login from "@/pages/auth/Login";
+import Signup from "@/pages/auth/Signup";
 import AdminLogin from "@/pages/admin/Login";
 import AdminIndex from "@/pages/admin/Index";
 import AdminProducts from "@/pages/admin/Products";
@@ -34,6 +38,8 @@ function Router() {
       <Route path="/bulk-orders" component={BulkOrders} />
       <Route path="/cart" component={Cart} />
       <Route path="/checkout" component={Checkout} />
+      <Route path="/login" component={Login} />
+      <Route path="/signup" component={Signup} />
       <Route path="/admin/login" component={AdminLogin} />
       <Route path="/admin" component={AdminIndex} />
       <Route path="/admin/products" component={AdminProducts} />
@@ -46,10 +52,14 @@ function Router() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Router />
-      </TooltipProvider>
+      <AuthProvider>
+        <CartProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Router />
+          </TooltipProvider>
+        </CartProvider>
+      </AuthProvider>
     </QueryClientProvider>
   );
 }
