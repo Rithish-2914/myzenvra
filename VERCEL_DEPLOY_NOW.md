@@ -11,6 +11,16 @@ Your project already has:
 - ✅ CORS headers configured
 - ✅ Environment variable structure
 
+## 🎯 IMPORTANT: Consolidated API Structure
+
+Your API has been consolidated from 17 individual serverless functions into **1 Express-based function** to work within Vercel's Hobby plan (12 function limit).
+
+**What Changed:**
+- ✅ All API routes now handled by `/api/index.ts`
+- ✅ Uses your existing Express server from `server/routes.ts`
+- ✅ Same endpoints, same functionality, just 1 function instead of 17
+- ✅ No code changes needed on frontend
+
 ## 📝 Step 1: Prepare Environment Variables
 
 You'll need to add these environment variables in Vercel. Get them from your Supabase and Firebase dashboards.
