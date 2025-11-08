@@ -480,22 +480,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         if (error) throw error;
         result = data;
-      } else {
-        // Upsert user (insert or update if firebase_uid exists)
+      } else if (existingUser) {
+        // User already exists, just update their info
         const { data, error } = await supabaseAdmin
           .from("users")
-          .upsert(
-            {
-              firebase_uid: userData.firebase_uid,
-              email: userData.email,
-              name: userData.name,
-              photo_url: userData.photo_url,
-            },
-            {
-              onConflict: 'firebase_uid',
-              ignoreDuplicates: false
-            }
-          )
+          .update({
+            name: userData.name,
+            photo_url: userData.photo_url,
+          })
+          .eq("firebase_uid", userData.firebase_uid)
+          .select()
+          .single();
+
+        if (error) throw error;
+        result = data;
+      } else {
+        // Create new user with default 'customer' role
+        const { data, error } = await supabaseAdmin
+          .from("users")
+          .insert({
+            firebase_uid: userData.firebase_uid,
+            email: userData.email,
+            name: userData.name,
+            photo_url: userData.photo_url,
+            role: 'customer',
+          })
           .select()
           .single();
 
@@ -509,6 +518,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error: any) {
       console.error("User sync error:", error);
+      handleError(error, res);
+    }
+  });
+
+  // Get current user profile
+  app.post("/api/users/me", async (req, res) => {
+    try {
+      const { idToken } = req.body;
+
+      if (!idToken) {
+        return res.status(400).json({ error: "Firebase ID token is required" });
+      }
+
+      // Verify Firebase token
+      const decodedToken = await verifyFirebaseToken(idToken);
+      if (!decodedToken) {
+        return res.status(401).json({ error: "Invalid Firebase token" });
+      }
+
+      // Get user from Supabase
+      const { data: user, error } = await supabaseAdmin
+        .from("users")
+        .select("id, firebase_uid, email, name, role, photo_url, created_at, updated_at")
+        .eq("firebase_uid", decodedToken.uid)
+        .single();
+
+      if (error || !user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      res.json(user);
+    } catch (error: any) {
+      console.error("Get user profile error:", error);
       handleError(error, res);
     }
   });

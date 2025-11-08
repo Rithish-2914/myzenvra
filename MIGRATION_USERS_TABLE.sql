@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS users (
   firebase_uid TEXT NOT NULL UNIQUE,
   email TEXT NOT NULL UNIQUE,
   name TEXT NOT NULL,
-  role TEXT DEFAULT 'user' CHECK (role IN ('user', 'admin')),
+  role TEXT DEFAULT 'customer' CHECK (role IN ('customer', 'admin')),
   photo_url TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()

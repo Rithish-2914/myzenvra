@@ -10,14 +10,18 @@ import {
   updateProfile
 } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
+import type { User as SupabaseUser } from '@shared/schema';
 
 interface AuthContextType {
   user: User | null;
+  userProfile: SupabaseUser | null;
   loading: boolean;
+  isAdmin: boolean;
   login: (email: string, password: string) => Promise<void>;
   signup: (email: string, password: string, name: string) => Promise<void>;
   loginWithGoogle: () => Promise<void>;
   logout: () => Promise<void>;
+  refreshUserProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -32,7 +36,41 @@ export function useAuth() {
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  const [userProfile, setUserProfile] = useState<SupabaseUser | null>(null);
   const [loading, setLoading] = useState(true);
+
+  const fetchUserProfile = async (firebaseUser: User) => {
+    try {
+      const idToken = await firebaseUser.getIdToken();
+      
+      // Sync user to Supabase
+      await fetch('/api/users/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ idToken })
+      });
+
+      // Fetch user profile including role
+      const response = await fetch('/api/users/me', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ idToken })
+      });
+
+      if (response.ok) {
+        const profile = await response.json();
+        setUserProfile(profile);
+      }
+    } catch (error) {
+      console.error('Failed to fetch user profile:', error);
+    }
+  };
+
+  const refreshUserProfile = async () => {
+    if (user) {
+      await fetchUserProfile(user);
+    }
+  };
 
   useEffect(() => {
     if (!auth) {
@@ -43,18 +81,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setUser(user);
       
-      // Sync user to Supabase when authenticated
       if (user) {
-        try {
-          const idToken = await user.getIdToken();
-          await fetch('/api/users/sync', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ idToken })
-          });
-        } catch (error) {
-          console.error('Failed to sync user to Supabase:', error);
-        }
+        await fetchUserProfile(user);
+      } else {
+        setUserProfile(null);
       }
       
       setLoading(false);
@@ -95,11 +125,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const value = {
     user,
+    userProfile,
     loading,
+    isAdmin: userProfile?.role === 'admin',
     login,
     signup,
     loginWithGoogle,
-    logout
+    logout,
+    refreshUserProfile
   };
 
   return (

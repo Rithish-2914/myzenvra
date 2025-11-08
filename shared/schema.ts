@@ -245,7 +245,7 @@ export const userSchema = z.object({
   firebase_uid: z.string(),
   email: z.string().email(),
   name: z.string(),
-  role: z.enum(['user', 'admin']),
+  role: z.enum(['customer', 'admin']),
   photo_url: z.string().nullable(),
   created_at: z.string(),
   updated_at: z.string(),
@@ -255,12 +255,12 @@ export const insertUserSchema = z.object({
   firebase_uid: z.string().min(1, "Firebase UID is required"),
   email: z.string().email("Valid email required"),
   name: z.string().min(1, "Name is required"),
-  role: z.enum(['user', 'admin']).default('user'),
+  role: z.enum(['customer', 'admin']).default('customer'),
   photo_url: z.string().optional(),
 });
 
 export const updateUserRoleSchema = z.object({
-  role: z.enum(['user', 'admin']),
+  role: z.enum(['customer', 'admin']),
 });
 
 export type User = z.infer<typeof userSchema>;
