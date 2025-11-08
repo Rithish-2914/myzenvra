@@ -43,26 +43,43 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const idToken = await firebaseUser.getIdToken();
       
+      console.log('🔄 Syncing user to Supabase...', firebaseUser.email);
+      
       // Sync user to Supabase
-      await fetch('/api/users/sync', {
+      const syncResponse = await fetch('/api/users/sync', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ idToken })
       });
 
+      if (!syncResponse.ok) {
+        const error = await syncResponse.json();
+        console.error('❌ User sync failed:', error);
+        throw new Error(error.error || 'Failed to sync user');
+      }
+
+      const syncResult = await syncResponse.json();
+      console.log('✅ User synced to Supabase:', syncResult);
+
       // Fetch user profile including role
+      console.log('🔄 Fetching user profile from Supabase...');
       const response = await fetch('/api/users/me', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ idToken })
       });
 
-      if (response.ok) {
-        const profile = await response.json();
-        setUserProfile(profile);
+      if (!response.ok) {
+        const error = await response.json();
+        console.error('❌ Failed to fetch user profile:', error);
+        throw new Error(error.error || 'Failed to fetch profile');
       }
+
+      const profile = await response.json();
+      console.log('✅ User profile fetched:', { email: profile.email, role: profile.role });
+      setUserProfile(profile);
     } catch (error) {
-      console.error('Failed to fetch user profile:', error);
+      console.error('❌ Error in fetchUserProfile:', error);
     }
   };
 

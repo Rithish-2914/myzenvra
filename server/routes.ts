@@ -440,14 +440,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { idToken } = req.body;
 
       if (!idToken) {
+        console.error('❌ User sync: No idToken provided');
         return res.status(400).json({ error: "Firebase ID token is required" });
       }
+
+      console.log('🔄 Attempting to verify Firebase token...');
 
       // Verify Firebase token
       const decodedToken = await verifyFirebaseToken(idToken);
       if (!decodedToken) {
+        console.error('❌ User sync: Invalid Firebase token');
         return res.status(401).json({ error: "Invalid Firebase token" });
       }
+
+      console.log('✅ Firebase token verified for:', decodedToken.email);
 
       // Extract user data from token
       const userData = {
@@ -456,6 +462,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         name: decodedToken.name || decodedToken.email?.split('@')[0] || 'User',
         photo_url: decodedToken.picture || null,
       };
+
+      console.log('📝 User data to sync:', { email: userData.email, firebase_uid: userData.firebase_uid });
 
       // Check if user exists by email (for migrated admins with placeholder firebase_uid)
       const { data: existingUser } = await supabaseAdmin
@@ -467,6 +475,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let result;
       if (existingUser && existingUser.firebase_uid.startsWith('admin_')) {
         // Update existing admin user's firebase_uid (migration from admin_users table)
+        console.log('🔄 Updating migrated admin user:', userData.email);
         const { data, error } = await supabaseAdmin
           .from("users")
           .update({
@@ -478,10 +487,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
           .select()
           .single();
 
-        if (error) throw error;
+        if (error) {
+          console.error('❌ Error updating admin user:', error);
+          throw error;
+        }
+        console.log('✅ Admin user updated successfully');
         result = data;
       } else if (existingUser) {
         // User already exists, just update their info
+        console.log('🔄 Updating existing user:', userData.email);
         const { data, error } = await supabaseAdmin
           .from("users")
           .update({
@@ -492,10 +506,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
           .select()
           .single();
 
-        if (error) throw error;
+        if (error) {
+          console.error('❌ Error updating existing user:', error);
+          throw error;
+        }
+        console.log('✅ Existing user updated successfully');
         result = data;
       } else {
         // Create new user with default 'customer' role
+        console.log('✨ Creating new user with customer role:', userData.email);
         const { data, error } = await supabaseAdmin
           .from("users")
           .insert({
@@ -508,9 +527,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
           .select()
           .single();
 
-        if (error) throw error;
+        if (error) {
+          console.error('❌ Error creating new user:', error);
+          console.error('Full error details:', JSON.stringify(error, null, 2));
+          throw error;
+        }
+        console.log('✅ New user created successfully with role:', data.role);
         result = data;
       }
+
+      console.log('✅ User sync complete:', { email: result.email, role: result.role });
 
       res.json({
         success: true,
