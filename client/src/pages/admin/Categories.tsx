@@ -23,7 +23,7 @@ function CategoriesPage() {
     image_url: "",
   });
 
-  const { data: categories, isLoading } = useQuery({
+  const { data: categories = [], isLoading } = useQuery<any[]>({
     queryKey: ['/api/categories'],
   });
 

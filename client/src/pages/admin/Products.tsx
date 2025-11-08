@@ -39,11 +39,11 @@ function ProductsPage() {
     active: true,
   });
 
-  const { data: products, isLoading: productsLoading } = useQuery({
+  const { data: products = [], isLoading: productsLoading } = useQuery<any[]>({
     queryKey: ['/api/products', { all: 'true' }],
   });
 
-  const { data: categories } = useQuery({
+  const { data: categories = [] } = useQuery<any[]>({
     queryKey: ['/api/categories'],
   });
 

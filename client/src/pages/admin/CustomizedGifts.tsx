@@ -12,7 +12,7 @@ function CustomizedGiftsPage() {
   const [, setLocation] = useLocation();
   const [selectedType, setSelectedType] = useState<string | null>(null);
 
-  const { data: products, isLoading } = useQuery({
+  const { data: products = [], isLoading } = useQuery<any[]>({
     queryKey: ['/api/products', { all: 'true', gift_type: selectedType }],
   });
 

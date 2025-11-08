@@ -26,7 +26,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
   const logoutMutation = useMutation({
     mutationFn: async () => {
-      return await apiRequest('/api/admin/logout', { method: 'POST' });
+      return await apiRequest('POST', '/api/admin/logout');
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/session'] });

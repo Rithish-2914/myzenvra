@@ -107,7 +107,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get all products (public - returns only active products for non-admin)
   app.get("/api/products", async (req, res) => {
     try {
-      const { category, all } = req.query;
+      const { category, all, gift_type } = req.query;
       const isAdmin = req.session?.adminId;
       
       let query = supabase
@@ -121,6 +121,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (category) {
         query = query.eq("category_id", category);
+      }
+
+      // Filter by gift type if specified
+      if (gift_type && gift_type !== 'null') {
+        query = query.eq("gift_type", gift_type);
       }
 
       query = query.order("created_at", { ascending: false });
