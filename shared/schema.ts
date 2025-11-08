@@ -130,7 +130,7 @@ export const insertCustomizationSchema = z.object({
   custom_image_url: z.string().optional(),
   selected_color: z.string().optional(),
   selected_size: z.string().optional(),
-  price: z.number().positive("Price must be positive"),
+  price: z.number().nonnegative().default(0).optional(),
   status: z.string().default("pending"),
 });
 

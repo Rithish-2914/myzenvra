@@ -613,6 +613,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Upload customer design (public - for logged-in customers)
+  app.post("/api/upload-customer-design", async (req, res) => {
+    try {
+      const { file, fileName } = req.body;
+      
+      if (!file || !fileName) {
+        return res.status(400).json({ error: "File and fileName required" });
+      }
+
+      // Convert base64 to buffer
+      const base64Data = file.split(',')[1] || file;
+      const buffer = Buffer.from(base64Data, 'base64');
+      
+      const uniqueFileName = `${Date.now()}-${fileName}`;
+
+      const { data, error } = await supabaseAdmin.storage
+        .from('customer-designs')
+        .upload(uniqueFileName, buffer, {
+          contentType: 'image/jpeg',
+          upsert: false,
+        });
+
+      if (error) throw error;
+
+      // Get public URL
+      const { data: { publicUrl } } = supabaseAdmin.storage
+        .from('customer-designs')
+        .getPublicUrl(data.path);
+
+      res.json({ url: publicUrl, path: data.path });
+    } catch (error: any) {
+      handleError(error, res);
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

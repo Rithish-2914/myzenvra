@@ -1,12 +1,27 @@
 import { Link } from "wouter";
-import { ShoppingCart, Menu, X, Sun, Moon } from "lucide-react";
+import { ShoppingCart, Menu, X, Sun, Moon, User, LogOut, Package } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { useAuth } from "@/contexts/AuthContext";
 import { useState, useEffect } from "react";
+import { useLocation } from "wouter";
+import { useToast } from "@/hooks/use-toast";
 
 export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
   const [cartCount] = useState(0);
+  const { user, logout } = useAuth();
+  const [, setLocation] = useLocation();
+  const { toast } = useToast();
 
   useEffect(() => {
     if (darkMode) {
@@ -49,7 +64,7 @@ export default function Header() {
             ))}
           </nav>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <Button
               variant="ghost"
               size="icon"
@@ -74,6 +89,66 @@ export default function Header() {
                 )}
               </Button>
             </Link>
+
+            {user ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    className="hidden md:flex gap-2"
+                    data-testid="button-user-menu"
+                  >
+                    <Avatar className="h-6 w-6">
+                      <AvatarFallback className="text-xs">
+                        {user.displayName?.charAt(0)?.toUpperCase() || user.email?.charAt(0)?.toUpperCase() || 'U'}
+                      </AvatarFallback>
+                    </Avatar>
+                    <span className="text-sm">{user.displayName || user.email}</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onClick={() => setLocation('/profile')}
+                    data-testid="menu-profile"
+                  >
+                    <User className="mr-2 h-4 w-4" />
+                    Profile
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => setLocation('/orders')}
+                    data-testid="menu-orders"
+                  >
+                    <Package className="mr-2 h-4 w-4" />
+                    My Orders
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onClick={async () => {
+                      await logout();
+                      toast({ title: "Logged out successfully" });
+                      setLocation('/');
+                    }}
+                    data-testid="menu-logout"
+                  >
+                    <LogOut className="mr-2 h-4 w-4" />
+                    Logout
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <Link href="/login">
+                <Button
+                  variant="default"
+                  size="sm"
+                  className="hidden md:flex"
+                  data-testid="button-login"
+                >
+                  Login
+                </Button>
+              </Link>
+            )}
 
             <Button
               variant="ghost"
@@ -103,6 +178,67 @@ export default function Header() {
                 </Button>
               </Link>
             ))}
+            
+            {user ? (
+              <>
+                <div className="border-t border-card-border my-2" />
+                <div className="px-3 py-2 text-sm text-muted-foreground">
+                  {user.displayName || user.email}
+                </div>
+                <Button
+                  variant="ghost"
+                  className="w-full justify-start"
+                  onClick={() => {
+                    setLocation('/profile');
+                    setMobileMenuOpen(false);
+                  }}
+                  data-testid="link-mobile-profile"
+                >
+                  <User className="mr-2 h-4 w-4" />
+                  Profile
+                </Button>
+                <Button
+                  variant="ghost"
+                  className="w-full justify-start"
+                  onClick={() => {
+                    setLocation('/orders');
+                    setMobileMenuOpen(false);
+                  }}
+                  data-testid="link-mobile-orders"
+                >
+                  <Package className="mr-2 h-4 w-4" />
+                  My Orders
+                </Button>
+                <Button
+                  variant="ghost"
+                  className="w-full justify-start"
+                  onClick={async () => {
+                    await logout();
+                    toast({ title: "Logged out successfully" });
+                    setMobileMenuOpen(false);
+                    setLocation('/');
+                  }}
+                  data-testid="link-mobile-logout"
+                >
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Logout
+                </Button>
+              </>
+            ) : (
+              <>
+                <div className="border-t border-card-border my-2" />
+                <Link href="/login">
+                  <Button
+                    variant="default"
+                    className="w-full"
+                    onClick={() => setMobileMenuOpen(false)}
+                    data-testid="link-mobile-login"
+                  >
+                    Login
+                  </Button>
+                </Link>
+              </>
+            )}
           </nav>
         </div>
       )}

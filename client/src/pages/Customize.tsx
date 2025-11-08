@@ -1,9 +1,32 @@
+import { useEffect } from "react";
+import { useLocation } from "wouter";
+import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import CustomizeForm from "@/components/CustomizeForm";
 import { Card } from "@/components/ui/card";
 
 export default function Customize() {
+  const { user } = useAuth();
+  const [, setLocation] = useLocation();
+  const { toast } = useToast();
+
+  useEffect(() => {
+    if (!user) {
+      toast({
+        title: "Login Required",
+        description: "Please log in to customize products",
+        variant: "destructive"
+      });
+      setLocation("/login");
+    }
+  }, [user, setLocation, toast]);
+
+  if (!user) {
+    return null;
+  }
+
   return (
     <div className="min-h-screen">
       <Header />

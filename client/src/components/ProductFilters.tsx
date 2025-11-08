@@ -1,15 +1,26 @@
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { useState } from "react";
+import { Category } from "@/../../shared/schema";
 
-const categories = ["Hoodies", "Tees", "Pants", "Accessories"];
 const sizes = ["XS", "S", "M", "L", "XL", "2XL"];
 
-export default function ProductFilters() {
+interface ProductFiltersProps {
+  categories: Category[];
+  selectedCategory: string | null;
+  onCategorySelect: (categoryId: string | null) => void;
+  isLoading?: boolean;
+}
+
+export default function ProductFilters({ 
+  categories, 
+  selectedCategory, 
+  onCategorySelect,
+  isLoading 
+}: ProductFiltersProps) {
   const [priceRange, setPriceRange] = useState([0, 5000]);
-  const [customizableOnly, setCustomizableOnly] = useState(false);
 
   return (
     <Card className="p-6">
@@ -18,35 +29,33 @@ export default function ProductFilters() {
       <div className="space-y-6">
         <div>
           <Label className="mb-3 block">Category</Label>
-          <div className="space-y-2">
-            {categories.map((category) => (
-              <div key={category} className="flex items-center gap-2">
-                <Checkbox
-                  id={`category-${category}`}
-                  data-testid={`checkbox-category-${category.toLowerCase()}`}
-                />
-                <label
-                  htmlFor={`category-${category}`}
-                  className="text-sm cursor-pointer"
+          {isLoading ? (
+            <p className="text-sm text-muted-foreground">Loading...</p>
+          ) : (
+            <div className="space-y-2">
+              <Button
+                variant={selectedCategory === null ? "default" : "ghost"}
+                size="sm"
+                className="w-full justify-start"
+                onClick={() => onCategorySelect(null)}
+                data-testid="button-category-all"
+              >
+                All Products
+              </Button>
+              {categories.map((category) => (
+                <Button
+                  key={category.id}
+                  variant={selectedCategory === category.id ? "default" : "ghost"}
+                  size="sm"
+                  className="w-full justify-start"
+                  onClick={() => onCategorySelect(category.id)}
+                  data-testid={`button-category-${category.slug}`}
                 >
-                  {category}
-                </label>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div>
-          <Label className="mb-3 block">Size</Label>
-          <div className="flex gap-2 flex-wrap">
-            {sizes.map((size) => (
-              <Checkbox
-                key={size}
-                id={`size-${size}`}
-                data-testid={`checkbox-size-${size}`}
-              />
-            ))}
-          </div>
+                  {category.name}
+                </Button>
+              ))}
+            </div>
+          )}
         </div>
 
         <div>
@@ -60,18 +69,6 @@ export default function ProductFilters() {
             step={100}
             data-testid="slider-price"
           />
-        </div>
-
-        <div className="flex items-center gap-2 pt-4 border-t border-border">
-          <Checkbox
-            id="customizable"
-            checked={customizableOnly}
-            onCheckedChange={(checked) => setCustomizableOnly(checked as boolean)}
-            data-testid="checkbox-customizable"
-          />
-          <label htmlFor="customizable" className="text-sm cursor-pointer">
-            Customizable Only
-          </label>
         </div>
       </div>
     </Card>

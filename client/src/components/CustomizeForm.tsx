@@ -2,10 +2,12 @@ import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Upload } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
+import { useMutation } from "@tanstack/react-query";
 
 const sizes = ["XS", "S", "M", "L", "XL", "2XL", "3XL"];
 const colors = [
@@ -19,18 +21,112 @@ export default function CustomizeForm() {
   const [selectedSize, setSelectedSize] = useState("M");
   const [selectedColor, setSelectedColor] = useState("#F5F1E8");
   const [customText, setCustomText] = useState("");
-  const [uploadedFile, setUploadedFile] = useState<string | null>(null);
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
+  const { user } = useAuth();
+  const { toast } = useToast();
+
+  const customizationMutation = useMutation({
+    mutationFn: async (data: { 
+      custom_image_url?: string; 
+      custom_text: string; 
+      selected_color: string; 
+      selected_size: string; 
+      user_email: string;
+      price: number;
+    }) => {
+      const response = await fetch('/api/customizations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      if (!response.ok) throw new Error('Failed to save customization');
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({ 
+        title: "Success!", 
+        description: "Your customization has been submitted. We'll contact you soon!" 
+      });
+      setUploadedFile(null);
+      setUploadedFileName(null);
+      setCustomText("");
+      setSelectedSize("M");
+      setSelectedColor("#F5F1E8");
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Submission failed",
+        description: error.message || "Please try again",
+        variant: "destructive"
+      });
+    }
+  });
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setUploadedFile(file.name);
-      console.log("File uploaded:", file.name);
+      setUploadedFile(file);
+      setUploadedFileName(file.name);
     }
   };
 
-  const handleSubmit = () => {
-    console.log("Customization:", { selectedSize, selectedColor, customText, uploadedFile });
+  const handleSubmit = async () => {
+    if (!user?.email) {
+      toast({
+        title: "Error",
+        description: "You must be logged in to submit a customization",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    let imageUrl: string | undefined;
+
+    if (uploadedFile) {
+      try {
+        const reader = new FileReader();
+        const base64Promise = new Promise<string>((resolve, reject) => {
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(uploadedFile);
+        });
+
+        const base64Data = await base64Promise;
+        
+        const uploadResponse = await fetch('/api/upload-customer-design', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            file: base64Data,
+            fileName: uploadedFile.name,
+          }),
+        });
+
+        if (!uploadResponse.ok) {
+          throw new Error('Failed to upload image');
+        }
+
+        const uploadData = await uploadResponse.json();
+        imageUrl = uploadData.url;
+      } catch (error: any) {
+        toast({
+          title: "Upload failed",
+          description: error.message || "Failed to upload design image",
+          variant: "destructive"
+        });
+        return;
+      }
+    }
+
+    customizationMutation.mutate({
+      custom_image_url: imageUrl,
+      custom_text: customText,
+      selected_color: selectedColor,
+      selected_size: selectedSize,
+      user_email: user.email,
+      price: 0,
+    });
   };
 
   return (
@@ -52,7 +148,7 @@ export default function CustomizeForm() {
             <label htmlFor="file-upload" className="cursor-pointer">
               <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
               <p className="text-sm text-muted-foreground">
-                {uploadedFile || "Click to upload or drag and drop"}
+                {uploadedFileName || "Click to upload or drag and drop"}
               </p>
             </label>
           </div>
@@ -113,18 +209,18 @@ export default function CustomizeForm() {
         </div>
 
         <div className="pt-4 border-t border-border">
-          <div className="flex items-center justify-between mb-4">
-            <span className="text-lg font-semibold">Total Price:</span>
-            <span className="text-2xl font-bold text-primary" data-testid="text-total-price">₹2,499</span>
-          </div>
           <Button
             className="w-full"
             size="lg"
             onClick={handleSubmit}
-            data-testid="button-add-to-cart"
+            disabled={customizationMutation.isPending}
+            data-testid="button-submit-customization"
           >
-            Add to Cart
+            {customizationMutation.isPending ? "Submitting..." : "Submit Customization"}
           </Button>
+          <p className="text-sm text-muted-foreground text-center mt-3">
+            We'll contact you with pricing details shortly
+          </p>
         </div>
       </div>
     </Card>
