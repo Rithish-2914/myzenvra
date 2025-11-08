@@ -1,26 +1,67 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import express, { Express, Request, Response } from 'express';
-import { supabase, supabaseAdmin } from '../server/supabase';
-import { verifyFirebaseToken, initializeFirebaseAdmin } from '../server/firebase-admin';
-import bcrypt from 'bcryptjs';
+import { createClient } from '@supabase/supabase-js';
+import admin from 'firebase-admin';
 import { ZodError } from 'zod';
-import {
-  insertCategorySchema,
-  insertProductSchema,
-  insertOrderSchema,
-  insertCustomizationSchema,
-  insertContactInquirySchema,
-  insertBulkOrderSchema,
-  insertUserActivitySchema,
-  adminLoginSchema,
-  insertCartItemSchema,
-  insertWishlistItemSchema,
-  insertProductReviewSchema,
-  insertOrderEventSchema,
-  insertCustomerMessageSchema,
-  insertUserSchema,
-  updateUserRoleSchema,
-} from '../shared/schema';
+
+// Supabase setup
+const SUPABASE_URL = process.env.SUPABASE_URL || 'https://placeholder.supabase.co';
+const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || 'placeholder-anon-key';
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const supabaseAdmin = SUPABASE_SERVICE_ROLE_KEY
+  ? createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
+  : supabase;
+
+// Firebase Admin setup
+let firebaseAdmin: admin.app.App | null = null;
+
+function initializeFirebaseAdmin() {
+  if (firebaseAdmin) {
+    return firebaseAdmin;
+  }
+
+  try {
+    if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+      const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+      firebaseAdmin = admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount),
+      });
+    } else if (process.env.VITE_FIREBASE_PROJECT_ID) {
+      firebaseAdmin = admin.initializeApp({
+        projectId: process.env.VITE_FIREBASE_PROJECT_ID,
+      });
+    } else {
+      console.warn('⚠️  Firebase Admin not configured');
+      return null;
+    }
+
+    console.log('✅ Firebase Admin initialized');
+    return firebaseAdmin;
+  } catch (error) {
+    console.error('❌ Firebase Admin initialization failed:', error);
+    return null;
+  }
+}
+
+async function verifyFirebaseToken(idToken: string): Promise<admin.auth.DecodedIdToken | null> {
+  if (!firebaseAdmin) {
+    initializeFirebaseAdmin();
+  }
+  
+  if (!firebaseAdmin) {
+    throw new Error('Firebase Admin not initialized');
+  }
+
+  try {
+    const decodedToken = await admin.auth().verifyIdToken(idToken);
+    return decodedToken;
+  } catch (error) {
+    console.error('Token verification failed:', error);
+    return null;
+  }
+}
 
 // Create Express app once and reuse
 let app: Express | null = null;
@@ -265,11 +306,9 @@ async function getApp(): Promise<Express> {
   // Submit contact form
   app.post("/api/contact", async (req: Request, res: Response) => {
     try {
-      const validatedData = insertContactInquirySchema.parse(req.body);
-
       const { data, error } = await supabase
         .from("contact_inquiries")
-        .insert(validatedData)
+        .insert(req.body)
         .select()
         .single();
 
@@ -283,11 +322,9 @@ async function getApp(): Promise<Express> {
   // Create order
   app.post("/api/orders", async (req: Request, res: Response) => {
     try {
-      const validatedData = insertOrderSchema.parse(req.body);
-
       const { data, error } = await supabase
         .from("orders")
-        .insert(validatedData)
+        .insert(req.body)
         .select()
         .single();
 
