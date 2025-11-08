@@ -35,6 +35,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!auth) {
+      setLoading(false);
+      return;
+    }
+
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setUser(user);
       setLoading(false);
@@ -44,10 +49,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const login = async (email: string, password: string) => {
+    if (!auth) throw new Error('Firebase is not configured');
     await signInWithEmailAndPassword(auth, email, password);
   };
 
   const signup = async (email: string, password: string, name: string) => {
+    if (!auth) throw new Error('Firebase is not configured');
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     
     // Update profile with display name
@@ -61,11 +68,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const loginWithGoogle = async () => {
+    if (!auth) throw new Error('Firebase is not configured');
     const provider = new GoogleAuthProvider();
     await signInWithPopup(auth, provider);
   };
 
   const logout = async () => {
+    if (!auth) throw new Error('Firebase is not configured');
     await signOut(auth);
   };
 

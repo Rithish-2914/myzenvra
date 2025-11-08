@@ -1,5 +1,5 @@
-import { initializeApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
+import { initializeApp, FirebaseApp } from 'firebase/app';
+import { getAuth, Auth } from 'firebase/auth';
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -10,11 +10,14 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID
 };
 
-// Initialize Firebase
-export const app = initializeApp(firebaseConfig);
+// Check if all required Firebase config values are present
+const isFirebaseConfigured = Object.values(firebaseConfig).every(value => value !== undefined && value !== '');
 
-// Initialize Firebase Authentication
-export const auth = getAuth(app);
+// Initialize Firebase only if properly configured
+export const app: FirebaseApp | null = isFirebaseConfigured ? initializeApp(firebaseConfig) : null;
+
+// Initialize Firebase Authentication only if app is initialized
+export const auth: Auth | null = app ? getAuth(app) : null;
 
 // Export auth instance as default
 export default auth;
