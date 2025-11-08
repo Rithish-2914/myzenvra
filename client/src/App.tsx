@@ -17,6 +17,8 @@ import CustomerService from "@/pages/CustomerService";
 import BulkOrders from "@/pages/BulkOrders";
 import Cart from "@/pages/Cart";
 import Checkout from "@/pages/Checkout";
+import MyOrders from "@/pages/MyOrders";
+import Wishlist from "@/pages/Wishlist";
 import Login from "@/pages/auth/Login";
 import Signup from "@/pages/auth/Signup";
 import AdminLogin from "@/pages/admin/Login";
@@ -24,6 +26,9 @@ import AdminIndex from "@/pages/admin/Index";
 import AdminProducts from "@/pages/admin/Products";
 import AdminCategories from "@/pages/admin/Categories";
 import AdminCustomizedGifts from "@/pages/admin/CustomizedGifts";
+import AdminOrders from "@/pages/admin/Orders";
+import AdminMessages from "@/pages/admin/Messages";
+import AdminAnalytics from "@/pages/admin/Analytics";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -41,6 +46,8 @@ function Router() {
       <Route path="/bulk-orders" component={BulkOrders} />
       <Route path="/cart" component={Cart} />
       <Route path="/checkout" component={Checkout} />
+      <Route path="/my-orders" component={MyOrders} />
+      <Route path="/wishlist" component={Wishlist} />
       <Route path="/login" component={Login} />
       <Route path="/signup" component={Signup} />
       <Route path="/admin/login" component={AdminLogin} />
@@ -48,6 +55,9 @@ function Router() {
       <Route path="/admin/products" component={AdminProducts} />
       <Route path="/admin/categories" component={AdminCategories} />
       <Route path="/admin/customized-gifts" component={AdminCustomizedGifts} />
+      <Route path="/admin/orders" component={AdminOrders} />
+      <Route path="/admin/messages" component={AdminMessages} />
+      <Route path="/admin/analytics" component={AdminAnalytics} />
       <Route component={NotFound} />
     </Switch>
   );

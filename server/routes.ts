@@ -14,6 +14,11 @@ import {
   insertBulkOrderSchema,
   insertUserActivitySchema,
   adminLoginSchema,
+  insertCartItemSchema,
+  insertWishlistItemSchema,
+  insertProductReviewSchema,
+  insertOrderEventSchema,
+  insertCustomerMessageSchema,
 } from "@shared/schema";
 
 // Configure multer for file uploads
@@ -648,6 +653,749 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .getPublicUrl(data.path);
 
       res.json({ url: publicUrl, path: data.path });
+    } catch (error: any) {
+      handleError(error, res);
+    }
+  });
+
+  // ============ CART ITEMS ============
+  
+  // Get cart items (by user_id or session_id)
+  app.get("/api/cart", async (req, res) => {
+    try {
+      const { user_id, session_id } = req.query;
+      
+      if (!user_id && !session_id) {
+        return res.status(400).json({ error: "user_id or session_id required" });
+      }
+
+      let query = supabase
+        .from("cart_items")
+        .select("*, products(*)");
+
+      if (user_id) {
+        query = query.eq("user_id", user_id);
+      } else {
+        query = query.eq("session_id", session_id);
+      }
+
+      const { data, error } = await query.order("created_at", { ascending: false });
+
+      if (error) throw error;
+      res.json(data || []);
+    } catch (error: any) {
+      handleError(error, res);
+    }
+  });
+
+  // Add item to cart
+  app.post("/api/cart", async (req, res) => {
+    try {
+      const validatedData = insertCartItemSchema.parse(req.body);
+      
+      // Check if item already exists in cart
+      let query = supabase.from("cart_items").select("*");
+      
+      if (validatedData.user_id) {
+        query = query.eq("user_id", validatedData.user_id);
+      } else if (validatedData.session_id) {
+        query = query.eq("session_id", validatedData.session_id);
+      }
+      
+      query = query.eq("product_id", validatedData.product_id);
+      if (validatedData.size) query = query.eq("size", validatedData.size);
+      if (validatedData.color) query = query.eq("color", validatedData.color);
+
+      const { data: existing } = await query.single();
+
+      let result;
+      if (existing) {
+        // Update quantity if item exists
+        const { data, error } = await supabaseAdmin
+          .from("cart_items")
+          .update({ quantity: existing.quantity + validatedData.quantity })
+          .eq("id", existing.id)
+          .select("*, products(*)")
+          .single();
+
+        if (error) throw error;
+        result = data;
+      } else {
+        // Insert new item
+        const { data, error } = await supabaseAdmin
+          .from("cart_items")
+          .insert(validatedData)
+          .select("*, products(*)")
+          .single();
+
+        if (error) throw error;
+        result = data;
+      }
+
+      res.json(result);
+    } catch (error: any) {
+      handleError(error, res);
+    }
+  });
+
+  // Update cart item quantity
+  app.put("/api/cart/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { quantity } = req.body;
+
+      if (!quantity || quantity < 1) {
+        return res.status(400).json({ error: "Valid quantity required" });
+      }
+
+      const { data, error } = await supabaseAdmin
+        .from("cart_items")
+        .update({ quantity })
+        .eq("id", id)
+        .select("*, products(*)")
+        .single();
+
+      if (error) throw error;
+      res.json(data);
+    } catch (error: any) {
+      handleError(error, res);
+    }
+  });
+
+  // Delete cart item
+  app.delete("/api/cart/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+
+      const { error } = await supabaseAdmin
+        .from("cart_items")
+        .delete()
+        .eq("id", id);
+
+      if (error) throw error;
+      res.json({ success: true });
+    } catch (error: any) {
+      handleError(error, res);
+    }
+  });
+
+  // Clear cart (for user or session)
+  app.delete("/api/cart", async (req, res) => {
+    try {
+      const { user_id, session_id } = req.query;
+
+      if (!user_id && !session_id) {
+        return res.status(400).json({ error: "user_id or session_id required" });
+      }
+
+      let query = supabaseAdmin.from("cart_items").delete();
+
+      if (user_id) {
+        query = query.eq("user_id", user_id);
+      } else {
+        query = query.eq("session_id", session_id);
+      }
+
+      const { error } = await query;
+
+      if (error) throw error;
+      res.json({ success: true });
+    } catch (error: any) {
+      handleError(error, res);
+    }
+  });
+
+  // Sync guest cart to user cart (on login)
+  app.post("/api/cart/sync", async (req, res) => {
+    try {
+      const { user_id, session_id } = req.body;
+
+      if (!user_id || !session_id) {
+        return res.status(400).json({ error: "user_id and session_id required" });
+      }
+
+      // Update all cart items from session_id to user_id
+      const { error } = await supabaseAdmin
+        .from("cart_items")
+        .update({ user_id, session_id: null })
+        .eq("session_id", session_id);
+
+      if (error) throw error;
+      res.json({ success: true });
+    } catch (error: any) {
+      handleError(error, res);
+    }
+  });
+
+  // ============ WISHLIST ITEMS ============
+  
+  // Get user's wishlist
+  app.get("/api/wishlist", async (req, res) => {
+    try {
+      const { user_id } = req.query;
+
+      if (!user_id) {
+        return res.status(400).json({ error: "user_id required" });
+      }
+
+      const { data, error } = await supabase
+        .from("wishlist_items")
+        .select("*, products(*)")
+        .eq("user_id", user_id)
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      res.json(data || []);
+    } catch (error: any) {
+      handleError(error, res);
+    }
+  });
+
+  // Add item to wishlist
+  app.post("/api/wishlist", async (req, res) => {
+    try {
+      const validatedData = insertWishlistItemSchema.parse(req.body);
+
+      const { data, error } = await supabaseAdmin
+        .from("wishlist_items")
+        .insert(validatedData)
+        .select("*, products(*)")
+        .single();
+
+      if (error) {
+        // Handle duplicate entry
+        if (error.code === '23505') {
+          return res.status(400).json({ error: "Item already in wishlist" });
+        }
+        throw error;
+      }
+
+      res.json(data);
+    } catch (error: any) {
+      handleError(error, res);
+    }
+  });
+
+  // Remove item from wishlist
+  app.delete("/api/wishlist/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+
+      const { error } = await supabaseAdmin
+        .from("wishlist_items")
+        .delete()
+        .eq("id", id);
+
+      if (error) throw error;
+      res.json({ success: true });
+    } catch (error: any) {
+      handleError(error, res);
+    }
+  });
+
+  // Remove item from wishlist by product_id and user_id
+  app.delete("/api/wishlist/product/:product_id", async (req, res) => {
+    try {
+      const { product_id } = req.params;
+      const { user_id } = req.query;
+
+      if (!user_id) {
+        return res.status(400).json({ error: "user_id required" });
+      }
+
+      const { error } = await supabaseAdmin
+        .from("wishlist_items")
+        .delete()
+        .eq("product_id", product_id)
+        .eq("user_id", user_id);
+
+      if (error) throw error;
+      res.json({ success: true });
+    } catch (error: any) {
+      handleError(error, res);
+    }
+  });
+
+  // ============ PRODUCT REVIEWS ============
+  
+  // Get reviews for a product
+  app.get("/api/products/:product_id/reviews", async (req, res) => {
+    try {
+      const { product_id } = req.params;
+
+      const { data, error } = await supabase
+        .from("product_reviews")
+        .select("*")
+        .eq("product_id", product_id)
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      res.json(data || []);
+    } catch (error: any) {
+      handleError(error, res);
+    }
+  });
+
+  // Get average rating for a product
+  app.get("/api/products/:product_id/rating", async (req, res) => {
+    try {
+      const { product_id } = req.params;
+
+      const { data, error } = await supabase
+        .from("product_ratings_summary")
+        .select("*")
+        .eq("product_id", product_id)
+        .single();
+
+      if (error && error.code !== 'PGRST116') throw error;
+      
+      res.json(data || { 
+        product_id, 
+        review_count: 0, 
+        average_rating: 0,
+        five_star_count: 0,
+        four_star_count: 0,
+        three_star_count: 0,
+        two_star_count: 0,
+        one_star_count: 0
+      });
+    } catch (error: any) {
+      handleError(error, res);
+    }
+  });
+
+  // Submit a product review
+  app.post("/api/products/:product_id/reviews", async (req, res) => {
+    try {
+      const { product_id } = req.params;
+      const validatedData = insertProductReviewSchema.parse({
+        ...req.body,
+        product_id,
+      });
+
+      const { data, error } = await supabaseAdmin
+        .from("product_reviews")
+        .insert(validatedData)
+        .select()
+        .single();
+
+      if (error) {
+        if (error.code === '23505') {
+          return res.status(400).json({ error: "You have already reviewed this product" });
+        }
+        throw error;
+      }
+
+      res.json(data);
+    } catch (error: any) {
+      handleError(error, res);
+    }
+  });
+
+  // Update a review
+  app.put("/api/reviews/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { rating, comment } = req.body;
+
+      const { data, error } = await supabaseAdmin
+        .from("product_reviews")
+        .update({ rating, comment })
+        .eq("id", id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      res.json(data);
+    } catch (error: any) {
+      handleError(error, res);
+    }
+  });
+
+  // ============ ORDER ENHANCEMENTS ============
+  
+  // Get user's orders (My Orders)
+  app.get("/api/my-orders", async (req, res) => {
+    try {
+      const { user_id, user_email } = req.query;
+
+      if (!user_id && !user_email) {
+        return res.status(400).json({ error: "user_id or user_email required" });
+      }
+
+      let query = supabase.from("orders").select("*");
+
+      if (user_id) {
+        query = query.eq("user_id", user_id);
+      } else {
+        query = query.eq("user_email", user_email);
+      }
+
+      const { data, error } = await query.order("created_at", { ascending: false });
+
+      if (error) throw error;
+      res.json(data || []);
+    } catch (error: any) {
+      handleError(error, res);
+    }
+  });
+
+  // Get order details with events
+  app.get("/api/orders/:id/details", async (req, res) => {
+    try {
+      const { id } = req.params;
+
+      // Get order
+      const { data: order, error: orderError } = await supabase
+        .from("orders")
+        .select("*")
+        .eq("id", id)
+        .single();
+
+      if (orderError) throw orderError;
+
+      // Get order events
+      const { data: events, error: eventsError } = await supabase
+        .from("order_events")
+        .select("*")
+        .eq("order_id", id)
+        .order("created_at", { ascending: true });
+
+      if (eventsError) throw eventsError;
+
+      res.json({ ...order, events: events || [] });
+    } catch (error: any) {
+      handleError(error, res);
+    }
+  });
+
+  // Admin: Get all orders with filters
+  app.get("/api/admin/orders", requireAdmin, async (req, res) => {
+    try {
+      const { status, search, limit = 50, offset = 0 } = req.query;
+
+      let query = supabase
+        .from("orders")
+        .select("*", { count: 'exact' });
+
+      if (status && status !== 'all') {
+        query = query.eq("status", status);
+      }
+
+      if (search) {
+        query = query.or(`user_email.ilike.%${search}%,user_name.ilike.%${search}%,phone.ilike.%${search}%`);
+      }
+
+      query = query
+        .order("created_at", { ascending: false })
+        .range(Number(offset), Number(offset) + Number(limit) - 1);
+
+      const { data, error, count } = await query;
+
+      if (error) throw error;
+      res.json({ orders: data || [], total: count });
+    } catch (error: any) {
+      handleError(error, res);
+    }
+  });
+
+  // Admin: Update order status
+  app.put("/api/admin/orders/:id/status", requireAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { status, notes } = req.body;
+
+      // Update order status
+      const { data: order, error: orderError } = await supabaseAdmin
+        .from("orders")
+        .update({ status })
+        .eq("id", id)
+        .select()
+        .single();
+
+      if (orderError) throw orderError;
+
+      // Create order event
+      const eventData = insertOrderEventSchema.parse({
+        order_id: id,
+        status,
+        notes,
+        created_by: req.session?.adminId,
+      });
+
+      const { error: eventError } = await supabaseAdmin
+        .from("order_events")
+        .insert(eventData);
+
+      if (eventError) throw eventError;
+
+      res.json(order);
+    } catch (error: any) {
+      handleError(error, res);
+    }
+  });
+
+  // ============ CUSTOMIZATION MANAGEMENT ============
+  
+  // Admin: Get all customization requests
+  app.get("/api/admin/customizations", requireAdmin, async (req, res) => {
+    try {
+      const { status } = req.query;
+
+      let query = supabase
+        .from("customizations")
+        .select("*, products(*)");
+
+      if (status && status !== 'all') {
+        query = query.eq("status", status);
+      }
+
+      const { data, error } = await query.order("created_at", { ascending: false });
+
+      if (error) throw error;
+      res.json(data || []);
+    } catch (error: any) {
+      handleError(error, res);
+    }
+  });
+
+  // Admin: Update customization status
+  app.put("/api/admin/customizations/:id", requireAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { status } = req.body;
+
+      const { data, error } = await supabaseAdmin
+        .from("customizations")
+        .update({ status })
+        .eq("id", id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      res.json(data);
+    } catch (error: any) {
+      handleError(error, res);
+    }
+  });
+
+  // ============ CUSTOMER MESSAGES ============
+  
+  // Submit customer message (enhanced contact form)
+  app.post("/api/messages", async (req, res) => {
+    try {
+      const validatedData = insertCustomerMessageSchema.parse(req.body);
+
+      const { data, error } = await supabaseAdmin
+        .from("customer_messages")
+        .insert(validatedData)
+        .select()
+        .single();
+
+      if (error) throw error;
+      res.json(data);
+    } catch (error: any) {
+      handleError(error, res);
+    }
+  });
+
+  // Admin: Get all customer messages
+  app.get("/api/admin/messages", requireAdmin, async (req, res) => {
+    try {
+      const { status } = req.query;
+
+      let query = supabase.from("customer_messages").select("*");
+
+      if (status && status !== 'all') {
+        query = query.eq("status", status);
+      }
+
+      const { data, error } = await query.order("created_at", { ascending: false });
+
+      if (error) throw error;
+      res.json(data || []);
+    } catch (error: any) {
+      handleError(error, res);
+    }
+  });
+
+  // Admin: Update message status
+  app.put("/api/admin/messages/:id", requireAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { status, admin_notes } = req.body;
+
+      const updateData: any = { status };
+      if (admin_notes !== undefined) updateData.admin_notes = admin_notes;
+      if (status === 'replied') updateData.replied_at = new Date().toISOString();
+
+      const { data, error } = await supabaseAdmin
+        .from("customer_messages")
+        .update(updateData)
+        .eq("id", id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      res.json(data);
+    } catch (error: any) {
+      handleError(error, res);
+    }
+  });
+
+  // ============ SEARCH & FILTERS ============
+  
+  // Search products with filters
+  app.get("/api/products/search", async (req, res) => {
+    try {
+      const { 
+        q, 
+        category, 
+        min_price, 
+        max_price, 
+        size, 
+        color, 
+        sort = 'created_at',
+        order = 'desc'
+      } = req.query;
+
+      let query = supabase
+        .from("products")
+        .select("*, categories(*)")
+        .eq("active", true);
+
+      // Text search
+      if (q) {
+        query = query.or(`name.ilike.%${q}%,description.ilike.%${q}%`);
+      }
+
+      // Category filter
+      if (category) {
+        query = query.eq("category_id", category);
+      }
+
+      // Price range filter
+      if (min_price) {
+        query = query.gte("price", Number(min_price));
+      }
+      if (max_price) {
+        query = query.lte("price", Number(max_price));
+      }
+
+      // Size filter
+      if (size) {
+        query = query.contains("sizes", [size]);
+      }
+
+      // Color filter
+      if (color) {
+        query = query.contains("colors", [color]);
+      }
+
+      // Sorting
+      query = query.order(String(sort), { ascending: order === 'asc' });
+
+      const { data, error } = await query;
+
+      if (error) throw error;
+      res.json(data || []);
+    } catch (error: any) {
+      handleError(error, res);
+    }
+  });
+
+  // ============ ANALYTICS ============
+  
+  // Admin: Get order statistics
+  app.get("/api/admin/analytics/orders", requireAdmin, async (req, res) => {
+    try {
+      const { period = '30' } = req.query;
+      
+      // Get orders from the last N days
+      const daysAgo = new Date();
+      daysAgo.setDate(daysAgo.getDate() - Number(period));
+
+      const { data, error } = await supabase
+        .from("orders")
+        .select("*")
+        .gte("created_at", daysAgo.toISOString());
+
+      if (error) throw error;
+
+      // Calculate statistics
+      const orders = data || [];
+      const totalRevenue = orders.reduce((sum, order) => sum + Number(order.total_amount), 0);
+      const averageOrderValue = orders.length > 0 ? totalRevenue / orders.length : 0;
+
+      // Group by status
+      const statusCounts = orders.reduce((acc: any, order) => {
+        acc[order.status] = (acc[order.status] || 0) + 1;
+        return acc;
+      }, {});
+
+      res.json({
+        total_orders: orders.length,
+        total_revenue: totalRevenue,
+        average_order_value: averageOrderValue,
+        status_breakdown: statusCounts,
+        orders_by_day: orders,
+      });
+    } catch (error: any) {
+      handleError(error, res);
+    }
+  });
+
+  // Admin: Get daily order stats
+  app.get("/api/admin/analytics/daily-stats", requireAdmin, async (req, res) => {
+    try {
+      const { data, error } = await supabase
+        .from("daily_order_stats")
+        .select("*")
+        .limit(30)
+        .order("order_date", { ascending: false });
+
+      if (error) throw error;
+      res.json(data || []);
+    } catch (error: any) {
+      handleError(error, res);
+    }
+  });
+
+  // Admin: Get top products
+  app.get("/api/admin/analytics/top-products", requireAdmin, async (req, res) => {
+    try {
+      const { limit = 10 } = req.query;
+
+      // Get all orders
+      const { data: orders, error } = await supabase
+        .from("orders")
+        .select("items");
+
+      if (error) throw error;
+
+      // Count product sales
+      const productSales: any = {};
+      orders?.forEach((order: any) => {
+        order.items?.forEach((item: any) => {
+          if (!productSales[item.product_id]) {
+            productSales[item.product_id] = {
+              product_id: item.product_id,
+              name: item.name,
+              total_quantity: 0,
+              total_revenue: 0,
+            };
+          }
+          productSales[item.product_id].total_quantity += item.quantity;
+          productSales[item.product_id].total_revenue += item.price * item.quantity;
+        });
+      });
+
+      // Convert to array and sort
+      const topProducts = Object.values(productSales)
+        .sort((a: any, b: any) => b.total_quantity - a.total_quantity)
+        .slice(0, Number(limit));
+
+      res.json(topProducts);
     } catch (error: any) {
       handleError(error, res);
     }

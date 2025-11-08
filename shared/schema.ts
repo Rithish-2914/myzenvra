@@ -238,3 +238,124 @@ export const adminLoginSchema = z.object({
 export type AdminUser = z.infer<typeof adminUserSchema>;
 export type InsertAdminUser = z.infer<typeof insertAdminUserSchema>;
 export type AdminLogin = z.infer<typeof adminLoginSchema>;
+
+// Cart Items Schema
+export const cartItemSchema = z.object({
+  id: z.string().uuid(),
+  user_id: z.string().nullable(),
+  session_id: z.string().nullable(),
+  product_id: z.string().uuid(),
+  quantity: z.number(),
+  size: z.string().nullable(),
+  color: z.string().nullable(),
+  customization: z.object({
+    text: z.string().optional(),
+    image_url: z.string().optional(),
+  }).nullable(),
+  created_at: z.string(),
+  updated_at: z.string(),
+});
+
+export const insertCartItemSchema = z.object({
+  user_id: z.string().optional(),
+  session_id: z.string().optional(),
+  product_id: z.string().uuid(),
+  quantity: z.number().int().positive("Quantity must be positive"),
+  size: z.string().optional(),
+  color: z.string().optional(),
+  customization: z.object({
+    text: z.string().optional(),
+    image_url: z.string().optional(),
+  }).optional(),
+});
+
+export type CartItem = z.infer<typeof cartItemSchema>;
+export type InsertCartItem = z.infer<typeof insertCartItemSchema>;
+
+// Wishlist Items Schema
+export const wishlistItemSchema = z.object({
+  id: z.string().uuid(),
+  user_id: z.string(),
+  product_id: z.string().uuid(),
+  created_at: z.string(),
+});
+
+export const insertWishlistItemSchema = z.object({
+  user_id: z.string().min(1, "User ID is required"),
+  product_id: z.string().uuid(),
+});
+
+export type WishlistItem = z.infer<typeof wishlistItemSchema>;
+export type InsertWishlistItem = z.infer<typeof insertWishlistItemSchema>;
+
+// Product Reviews Schema
+export const productReviewSchema = z.object({
+  id: z.string().uuid(),
+  product_id: z.string().uuid(),
+  user_id: z.string(),
+  user_name: z.string(),
+  user_email: z.string(),
+  rating: z.number(),
+  comment: z.string().nullable(),
+  verified_purchase: z.boolean(),
+  created_at: z.string(),
+  updated_at: z.string(),
+});
+
+export const insertProductReviewSchema = z.object({
+  product_id: z.string().uuid(),
+  user_id: z.string().min(1, "User ID is required"),
+  user_name: z.string().min(1, "Name is required"),
+  user_email: z.string().email("Valid email required"),
+  rating: z.number().int().min(1, "Rating must be at least 1").max(5, "Rating cannot exceed 5"),
+  comment: z.string().optional(),
+  verified_purchase: z.boolean().default(false),
+});
+
+export type ProductReview = z.infer<typeof productReviewSchema>;
+export type InsertProductReview = z.infer<typeof insertProductReviewSchema>;
+
+// Order Events Schema (for status tracking)
+export const orderEventSchema = z.object({
+  id: z.string().uuid(),
+  order_id: z.string().uuid(),
+  status: z.enum(['pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled']),
+  notes: z.string().nullable(),
+  created_by: z.string().nullable(),
+  created_at: z.string(),
+});
+
+export const insertOrderEventSchema = z.object({
+  order_id: z.string().uuid(),
+  status: z.enum(['pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled']),
+  notes: z.string().optional(),
+  created_by: z.string().optional(),
+});
+
+export type OrderEvent = z.infer<typeof orderEventSchema>;
+export type InsertOrderEvent = z.infer<typeof insertOrderEventSchema>;
+
+// Customer Messages Schema (enhanced contact)
+export const customerMessageSchema = z.object({
+  id: z.string().uuid(),
+  name: z.string(),
+  email: z.string(),
+  subject: z.string(),
+  message: z.string(),
+  inquiry_type: z.string(),
+  status: z.enum(['new', 'read', 'replied', 'archived']),
+  admin_notes: z.string().nullable(),
+  replied_at: z.string().nullable(),
+  created_at: z.string(),
+});
+
+export const insertCustomerMessageSchema = z.object({
+  name: z.string().min(1, "Name is required"),
+  email: z.string().email("Valid email required"),
+  subject: z.string().min(1, "Subject is required"),
+  message: z.string().min(10, "Message must be at least 10 characters"),
+  inquiry_type: z.string().default("general"),
+});
+
+export type CustomerMessage = z.infer<typeof customerMessageSchema>;
+export type InsertCustomerMessage = z.infer<typeof insertCustomerMessageSchema>;
