@@ -7,6 +7,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { CartProvider } from "@/contexts/CartContext";
 import Home from "@/pages/Home";
 import Shop from "@/pages/Shop";
+import CustomizedGifts from "@/pages/CustomizedGifts";
 import Customize from "@/pages/Customize";
 import About from "@/pages/About";
 import Blog from "@/pages/Blog";
@@ -29,6 +30,7 @@ function Router() {
     <Switch>
       <Route path="/" component={Home} />
       <Route path="/shop" component={Shop} />
+      <Route path="/customized-gifts" component={CustomizedGifts} />
       <Route path="/customize" component={Customize} />
       <Route path="/about" component={About} />
       <Route path="/blog" component={Blog} />

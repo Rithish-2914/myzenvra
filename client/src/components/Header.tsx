@@ -34,6 +34,7 @@ export default function Header() {
   const navLinks = [
     { name: "Home", path: "/" },
     { name: "Shop", path: "/shop" },
+    { name: "Customized Gifts", path: "/customized-gifts" },
     { name: "Customize", path: "/customize" },
     { name: "About", path: "/about" },
     { name: "Blog", path: "/blog" },
