@@ -19,28 +19,28 @@ export default function Footer() {
           <div>
             <h4 className="font-semibold mb-4">Shop</h4>
             <ul className="space-y-2 text-sm">
-              <li><Link href="/shop"><a className="text-muted-foreground hover:text-foreground transition-colors" data-testid="link-footer-shop">All Products</a></Link></li>
-              <li><Link href="/shop?category=hoodies"><a className="text-muted-foreground hover:text-foreground transition-colors">Hoodies</a></Link></li>
-              <li><Link href="/shop?category=tees"><a className="text-muted-foreground hover:text-foreground transition-colors">Tees</a></Link></li>
-              <li><Link href="/customize"><a className="text-muted-foreground hover:text-foreground transition-colors">Customize</a></Link></li>
+              <li><Link href="/shop" className="text-muted-foreground hover:text-foreground transition-colors" data-testid="link-footer-shop">All Products</Link></li>
+              <li><Link href="/shop?category=hoodies" className="text-muted-foreground hover:text-foreground transition-colors">Hoodies</Link></li>
+              <li><Link href="/shop?category=tees" className="text-muted-foreground hover:text-foreground transition-colors">Tees</Link></li>
+              <li><Link href="/customize" className="text-muted-foreground hover:text-foreground transition-colors">Customize</Link></li>
             </ul>
           </div>
 
           <div>
             <h4 className="font-semibold mb-4">Company</h4>
             <ul className="space-y-2 text-sm">
-              <li><Link href="/about"><a className="text-muted-foreground hover:text-foreground transition-colors" data-testid="link-footer-about">About Us</a></Link></li>
-              <li><Link href="/blog"><a className="text-muted-foreground hover:text-foreground transition-colors">Blog</a></Link></li>
-              <li><Link href="/bulk-orders"><a className="text-muted-foreground hover:text-foreground transition-colors">Bulk Orders</a></Link></li>
-              <li><Link href="/contact"><a className="text-muted-foreground hover:text-foreground transition-colors">Contact</a></Link></li>
+              <li><Link href="/about" className="text-muted-foreground hover:text-foreground transition-colors" data-testid="link-footer-about">About Us</Link></li>
+              <li><Link href="/blog" className="text-muted-foreground hover:text-foreground transition-colors">Blog</Link></li>
+              <li><Link href="/bulk-orders" className="text-muted-foreground hover:text-foreground transition-colors">Bulk Orders</Link></li>
+              <li><Link href="/contact" className="text-muted-foreground hover:text-foreground transition-colors">Contact</Link></li>
             </ul>
           </div>
 
           <div>
             <h4 className="font-semibold mb-4">Support</h4>
             <ul className="space-y-2 text-sm">
-              <li><Link href="/customer-service"><a className="text-muted-foreground hover:text-foreground transition-colors" data-testid="link-footer-support">Customer Service</a></Link></li>
-              <li><Link href="/faq"><a className="text-muted-foreground hover:text-foreground transition-colors">FAQ</a></Link></li>
+              <li><Link href="/customer-service" className="text-muted-foreground hover:text-foreground transition-colors" data-testid="link-footer-support">Customer Service</Link></li>
+              <li><Link href="/faq" className="text-muted-foreground hover:text-foreground transition-colors">FAQ</Link></li>
             </ul>
           </div>
         </div>

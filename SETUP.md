@@ -82,6 +82,7 @@ VITE_FIREBASE_APP_ID=your_app_id
 2. Copy the following:
    - **Project URL** (e.g., `https://abcdefgh.supabase.co`)
    - **anon/public key** (starts with `eyJ...`)
+   - **service_role key** (starts with `eyJ...` - ⚠️ **KEEP THIS SECRET!**)
 
 ### Step 3: Add Supabase Secrets to Replit
 
@@ -90,7 +91,10 @@ In your Replit project, add these secrets:
 ```
 SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_ANON_KEY=your_anon_key_here
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key_here
 ```
+
+⚠️ **IMPORTANT:** The service_role key bypasses all Row Level Security (RLS) policies. Only use it on the server-side for admin operations. Never expose it to the client!
 
 ### Step 4: Create Database Schema
 
@@ -358,6 +362,7 @@ VITE_FIREBASE_APP_ID=
 # Supabase
 SUPABASE_URL=
 SUPABASE_ANON_KEY=
+SUPABASE_SERVICE_ROLE_KEY=
 
 # Session (already set)
 SESSION_SECRET=

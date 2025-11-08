@@ -14,6 +14,10 @@ import CustomerService from "@/pages/CustomerService";
 import BulkOrders from "@/pages/BulkOrders";
 import Cart from "@/pages/Cart";
 import Checkout from "@/pages/Checkout";
+import AdminLogin from "@/pages/admin/Login";
+import AdminIndex from "@/pages/admin/Index";
+import AdminProducts from "@/pages/admin/Products";
+import AdminCategories from "@/pages/admin/Categories";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -30,6 +34,10 @@ function Router() {
       <Route path="/bulk-orders" component={BulkOrders} />
       <Route path="/cart" component={Cart} />
       <Route path="/checkout" component={Checkout} />
+      <Route path="/admin/login" component={AdminLogin} />
+      <Route path="/admin" component={AdminIndex} />
+      <Route path="/admin/products" component={AdminProducts} />
+      <Route path="/admin/categories" component={AdminCategories} />
       <Route component={NotFound} />
     </Switch>
   );
