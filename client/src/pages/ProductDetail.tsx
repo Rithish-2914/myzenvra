@@ -6,7 +6,7 @@ import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ShoppingCart, Heart } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useCart } from "@/contexts/CartContext";
 import ProductCard from "@/components/ProductCard";
@@ -20,11 +20,42 @@ export default function ProductDetail() {
   const [selectedSize, setSelectedSize] = useState<string>("");
   const [selectedColor, setSelectedColor] = useState<string>("");
   const [quantity, setQuantity] = useState(1);
+  const [currentImage, setCurrentImage] = useState<string>("");
 
   const { data: product, isLoading } = useQuery<Product>({
     queryKey: ['/api/products', productId],
     enabled: !!productId,
   });
+
+  // Set default image when product loads or color changes
+  const handleColorChange = (color: string) => {
+    setSelectedColor(color);
+    if (product) {
+      // Check if there are color-specific images
+      if (product.color_images && product.color_images[color]?.length > 0) {
+        setCurrentImage(product.color_images[color][0]);
+      } else {
+        // Fallback to default image
+        setCurrentImage(product.images?.[0] || "");
+      }
+    }
+  };
+
+  // Set initial image when product loads
+  useEffect(() => {
+    if (product) {
+      const defaultImg = product.images?.[0] || "";
+      setCurrentImage(defaultImg);
+      // Auto-select first color if available
+      if (product.colors && product.colors.length > 0 && !selectedColor) {
+        const firstColor = product.colors[0];
+        setSelectedColor(firstColor);
+        if (product.color_images && product.color_images[firstColor]?.length > 0) {
+          setCurrentImage(product.color_images[firstColor][0]);
+        }
+      }
+    }
+  }, [product]);
 
   const { data: relatedProducts = [] } = useQuery<Product[]>({
     queryKey: ['/api/products', product?.category_id],
@@ -38,10 +69,10 @@ export default function ProductDetail() {
     enabled: !!product?.category_id,
   });
 
-  const handleAddToCart = () => {
+  const handleAddToCart = async () => {
     if (!product) return;
     
-    if (product.sizes && product.sizes.length > 0 && !selectedSize) {
+    if (product.available_sizes && product.available_sizes.length > 0 && !selectedSize) {
       toast({
         title: "Please select a size",
         variant: "destructive",
@@ -58,11 +89,11 @@ export default function ProductDetail() {
     }
 
     try {
-      addItem({
+      await addItem({
         productId: product.id,
         name: product.name,
         price: product.price,
-        image: product.image_url,
+        image: currentImage || product.images[0],
         quantity,
         size: selectedSize || undefined,
         color: selectedColor || undefined,
@@ -118,7 +149,7 @@ export default function ProductDetail() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 mb-16">
           <div className="aspect-[3/4] overflow-hidden rounded-md bg-muted">
             <img
-              src={product.image_url}
+              src={currentImage || product.images[0]}
               alt={product.name}
               className="w-full h-full object-cover"
               data-testid="img-product-main"
@@ -150,11 +181,11 @@ export default function ProductDetail() {
               </div>
             )}
 
-            {product.sizes && product.sizes.length > 0 && (
+            {product.available_sizes && product.available_sizes.length > 0 && (
               <div className="mb-6">
                 <h3 className="text-sm font-semibold mb-3">Size</h3>
                 <div className="flex flex-wrap gap-2">
-                  {product.sizes.map((size: string) => (
+                  {product.available_sizes.map((size: string) => (
                     <Button
                       key={size}
                       variant={selectedSize === size ? "default" : "outline"}
@@ -178,7 +209,7 @@ export default function ProductDetail() {
                       key={color}
                       variant={selectedColor === color ? "default" : "outline"}
                       size="sm"
-                      onClick={() => setSelectedColor(color)}
+                      onClick={() => handleColorChange(color)}
                       data-testid={`button-color-${color}`}
                     >
                       {color}
@@ -265,7 +296,7 @@ export default function ProductDetail() {
                   id={relatedProduct.id}
                   name={relatedProduct.name}
                   price={relatedProduct.price}
-                  image={relatedProduct.image_url}
+                  image={relatedProduct.images[0]}
                   category={(relatedProduct as any).categories?.name || ""}
                   customizable={relatedProduct.customizable}
                 />

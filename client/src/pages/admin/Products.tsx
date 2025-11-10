@@ -34,6 +34,7 @@ function ProductsPage() {
     price: "",
     category_id: "",
     images: [""],
+    color_images: {} as Record<string, string[]>,
     customizable: false,
     gift_type: "none" as "none" | "watches" | "eyewear" | "frames" | "accessories",
     stock_quantity: "0",
@@ -112,12 +113,22 @@ function ProductsPage() {
       .filter(([_, selected]) => selected)
       .map(([size]) => size);
 
+    // Build color_images object, filtering out empty URLs
+    const colorImages: Record<string, string[]> = {};
+    Object.entries(formData.color_images).forEach(([color, urls]) => {
+      const validUrls = urls.filter(url => url.trim() !== "");
+      if (validUrls.length > 0) {
+        colorImages[color] = validUrls;
+      }
+    });
+
     const productData = {
       ...formData,
       price: parseFloat(formData.price),
       stock_quantity: parseInt(formData.stock_quantity),
       slug: formData.slug || formData.name.toLowerCase().replace(/\s+/g, '-'),
       images: validImages,
+      color_images: Object.keys(colorImages).length > 0 ? colorImages : undefined,
       available_sizes: selectedSizes,
       tags: formData.tags.map(tag => tag.trim().toLowerCase()),
     };
@@ -146,6 +157,14 @@ function ProductsPage() {
                        false;
     });
 
+    // Load color_images if they exist
+    const colorImages: Record<string, string[]> = {};
+    if (product.color_images) {
+      Object.entries(product.color_images).forEach(([color, urls]) => {
+        colorImages[color] = Array.isArray(urls) ? [...urls] : [];
+      });
+    }
+
     setFormData({
       name: product.name,
       slug: product.slug,
@@ -153,6 +172,7 @@ function ProductsPage() {
       price: product.price.toString(),
       category_id: product.category_id || "",
       images: images,
+      color_images: colorImages,
       customizable: product.customizable,
       gift_type: product.gift_type || "none",
       stock_quantity: product.stock_quantity.toString(),
@@ -174,6 +194,7 @@ function ProductsPage() {
       price: "",
       category_id: "",
       images: [""],
+      color_images: {},
       customizable: false,
       gift_type: "none" as "none" | "watches" | "eyewear" | "frames" | "accessories",
       stock_quantity: "0",
@@ -318,6 +339,72 @@ function ProductsPage() {
                       Add Image
                     </Button>
                   )}
+                </div>
+              </div>
+
+              <div>
+                <Label>Color-Specific Images (Optional)</Label>
+                <p className="text-sm text-muted-foreground mb-3">
+                  Upload images for specific colors. When a customer selects a color, they'll see these images instead of the default images.
+                </p>
+                <div className="space-y-4">
+                  {formData.colors.map((color) => (
+                    <div key={color} className="border rounded-md p-4">
+                      <Label className="mb-2 block font-semibold">{color}</Label>
+                      <div className="space-y-2">
+                        {(formData.color_images[color] || []).map((url, index) => (
+                          <div key={index} className="flex gap-2">
+                            <Input
+                              value={url}
+                              onChange={(e) => {
+                                const newColorImages = { ...formData.color_images };
+                                if (!newColorImages[color]) newColorImages[color] = [];
+                                const newUrls = [...newColorImages[color]];
+                                newUrls[index] = e.target.value;
+                                newColorImages[color] = newUrls;
+                                setFormData({ ...formData, color_images: newColorImages });
+                              }}
+                              placeholder={`https://... (${color} image)`}
+                              data-testid={`input-color-image-${color}-${index}`}
+                            />
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => {
+                                const newColorImages = { ...formData.color_images };
+                                if (newColorImages[color]) {
+                                  newColorImages[color] = newColorImages[color].filter((_, i) => i !== index);
+                                  if (newColorImages[color].length === 0) {
+                                    delete newColorImages[color];
+                                  }
+                                }
+                                setFormData({ ...formData, color_images: newColorImages });
+                              }}
+                              data-testid={`button-remove-color-image-${color}-${index}`}
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ))}
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            const newColorImages = { ...formData.color_images };
+                            if (!newColorImages[color]) newColorImages[color] = [];
+                            newColorImages[color].push("");
+                            setFormData({ ...formData, color_images: newColorImages });
+                          }}
+                          data-testid={`button-add-color-image-${color}`}
+                        >
+                          <Plus className="h-4 w-4 mr-2" />
+                          Add {color} Image
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
 
