@@ -1,7 +1,8 @@
 -- Add Missing Tables for Cart and Announcements
 -- Run this in Supabase Dashboard → SQL Editor
+-- This version safely handles existing objects
 
--- Cart Items Table
+-- Cart Items Table (skip if exists)
 CREATE TABLE IF NOT EXISTS cart_items (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id TEXT,
@@ -19,7 +20,7 @@ CREATE TABLE IF NOT EXISTS cart_items (
   )
 );
 
--- Announcements Table
+-- Announcements Table (skip if exists)
 CREATE TABLE IF NOT EXISTS announcements (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   message TEXT NOT NULL,
@@ -30,11 +31,15 @@ CREATE TABLE IF NOT EXISTS announcements (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Create indexes for better performance
+-- Create indexes (skip if exists)
 CREATE INDEX IF NOT EXISTS idx_cart_items_user_id ON cart_items(user_id) WHERE user_id IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_cart_items_session_id ON cart_items(session_id) WHERE session_id IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_cart_items_product ON cart_items(product_id);
 CREATE INDEX IF NOT EXISTS idx_announcements_enabled ON announcements(enabled);
+
+-- Drop existing triggers before recreating
+DROP TRIGGER IF EXISTS update_cart_items_updated_at ON cart_items;
+DROP TRIGGER IF EXISTS update_announcements_updated_at ON announcements;
 
 -- Add triggers for updated_at
 CREATE TRIGGER update_cart_items_updated_at BEFORE UPDATE ON cart_items
@@ -47,44 +52,46 @@ CREATE TRIGGER update_announcements_updated_at BEFORE UPDATE ON announcements
 ALTER TABLE cart_items ENABLE ROW LEVEL SECURITY;
 ALTER TABLE announcements ENABLE ROW LEVEL SECURITY;
 
+-- Drop existing policies before recreating
+DROP POLICY IF EXISTS "Users can view their own cart items" ON cart_items;
+DROP POLICY IF EXISTS "Anyone can add to cart" ON cart_items;
+DROP POLICY IF EXISTS "Users can update their own cart items" ON cart_items;
+DROP POLICY IF EXISTS "Users can delete their own cart items" ON cart_items;
+DROP POLICY IF EXISTS "Service role can manage all cart items" ON cart_items;
+DROP POLICY IF EXISTS "Public can view enabled announcements" ON announcements;
+DROP POLICY IF EXISTS "Service role can manage announcements" ON announcements;
+
 -- RLS Policies for cart_items
--- Allow anyone to read their own cart (by user_id or session_id)
 CREATE POLICY "Users can view their own cart items" 
   ON cart_items FOR SELECT 
   USING (true);
 
--- Allow anyone to insert cart items
 CREATE POLICY "Anyone can add to cart" 
   ON cart_items FOR INSERT 
   WITH CHECK (true);
 
--- Allow anyone to update their own cart items
 CREATE POLICY "Users can update their own cart items" 
   ON cart_items FOR UPDATE 
   USING (true);
 
--- Allow anyone to delete their own cart items
 CREATE POLICY "Users can delete their own cart items" 
   ON cart_items FOR DELETE 
   USING (true);
 
--- Service role can manage all cart items
 CREATE POLICY "Service role can manage all cart items" 
   ON cart_items FOR ALL 
   USING (auth.role() = 'service_role');
 
 -- RLS Policies for announcements
--- Public read access for enabled announcements
 CREATE POLICY "Public can view enabled announcements" 
   ON announcements FOR SELECT 
   USING (enabled = true);
 
--- Service role can manage announcements
 CREATE POLICY "Service role can manage announcements" 
   ON announcements FOR ALL 
   USING (auth.role() = 'service_role');
 
--- Insert a sample announcement (optional)
+-- Insert a sample announcement (skip if already exists)
 INSERT INTO announcements (message, type, enabled) 
-VALUES ('Welcome to myzenvra! Free shipping on orders over ₹2000', 'info', true)
-ON CONFLICT DO NOTHING;
+SELECT 'Welcome to myzenvra! Free shipping on orders over ₹2000', 'info', true
+WHERE NOT EXISTS (SELECT 1 FROM announcements LIMIT 1);
