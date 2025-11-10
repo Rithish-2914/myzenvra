@@ -30,6 +30,7 @@ export const productSchema = z.object({
   price: z.number(),
   category_id: z.string().uuid().nullable(),
   images: z.array(z.string()),
+  color_images: z.record(z.array(z.string())).nullable(),  // Maps color -> image URLs
   customizable: z.boolean(),
   gift_type: z.enum(['none', 'watches', 'eyewear', 'frames', 'accessories']).nullable(),
   stock_quantity: z.number(),
@@ -51,6 +52,7 @@ export const insertProductSchema = z.object({
   price: z.number().positive("Price must be positive"),
   category_id: z.string().uuid().optional(),
   images: z.array(z.string().url("Each image must be a valid URL")).min(1, "At least one image is required").max(5, "Maximum 5 images allowed"),
+  color_images: z.record(z.array(z.string().url())).optional(),
   customizable: z.boolean().default(false),
   gift_type: z.enum(['none', 'watches', 'eyewear', 'frames', 'accessories']).default('none'),
   stock_quantity: z.number().int().nonnegative().default(0),
@@ -68,6 +70,7 @@ export const updateProductSchema = z.object({
   stock_quantity: z.number().int().nonnegative().optional(),
   category_id: z.string().uuid().nullable().optional(),
   images: z.array(z.string().url("Each image must be a valid URL")).min(1, "At least one image is required").max(5, "Maximum 5 images allowed").optional(),
+  color_images: z.record(z.array(z.string().url())).optional(),
   available_sizes: z.array(z.enum(ALL_SIZES)).optional(),
   colors: z.array(z.string()).optional(),
   tags: z.array(z.string().transform(s => s.trim().toLowerCase())).optional(),
@@ -479,3 +482,26 @@ export const insertCategoryProductSchema = z.object({
 
 export type CategoryProduct = z.infer<typeof categoryProductSchema>;
 export type InsertCategoryProduct = z.infer<typeof insertCategoryProductSchema>;
+
+// Product Images Schema (for color-specific images)
+export const productImageSchema = z.object({
+  id: z.string().uuid(),
+  product_id: z.string().uuid(),
+  color: z.string().nullable(),  // NULL means default/shared image
+  image_url: z.string().url(),
+  display_order: z.number().int().nonnegative(),
+  is_primary: z.boolean(),
+  created_at: z.string(),
+  updated_at: z.string(),
+});
+
+export const insertProductImageSchema = z.object({
+  product_id: z.string().uuid(),
+  color: z.string().optional(),  // undefined/null means default/shared
+  image_url: z.string().url("Image URL must be valid"),
+  display_order: z.number().int().nonnegative().default(0),
+  is_primary: z.boolean().default(false),
+});
+
+export type ProductImage = z.infer<typeof productImageSchema>;
+export type InsertProductImage = z.infer<typeof insertProductImageSchema>;

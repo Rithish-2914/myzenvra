@@ -49,9 +49,9 @@ export default function Shop() {
           Shop All Products
         </h1>
         
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-          <aside className="lg:col-span-1">
-            <div className="sticky top-24">
+        <div className="flex flex-col lg:flex-row gap-6">
+          <aside className="lg:w-64 lg:flex-shrink-0">
+            <div className="lg:sticky lg:top-24">
               <ProductFilters 
                 categories={categories}
                 selectedCategory={selectedCategory}
@@ -63,7 +63,7 @@ export default function Shop() {
             </div>
           </aside>
           
-          <main className="lg:col-span-3">
+          <main className="flex-1 min-w-0">
             {productsLoading ? (
               <div className="text-center py-12">
                 <p className="text-muted-foreground">Loading products...</p>
