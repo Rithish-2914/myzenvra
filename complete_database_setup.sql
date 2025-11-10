@@ -44,7 +44,6 @@ CREATE TABLE IF NOT EXISTS products (
 -- Orders Table
 CREATE TABLE IF NOT EXISTS orders (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  user_id TEXT,
   user_email TEXT NOT NULL,
   user_name TEXT NOT NULL,
   phone TEXT NOT NULL,
@@ -55,6 +54,17 @@ CREATE TABLE IF NOT EXISTS orders (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+
+-- Add user_id column if it doesn't exist
+DO $$ 
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns 
+    WHERE table_name = 'orders' AND column_name = 'user_id'
+  ) THEN
+    ALTER TABLE orders ADD COLUMN user_id TEXT;
+  END IF;
+END $$;
 
 -- Customizations Table
 CREATE TABLE IF NOT EXISTS customizations (
@@ -206,8 +216,17 @@ CREATE TABLE IF NOT EXISTS announcements (
 CREATE INDEX IF NOT EXISTS idx_products_category ON products(category_id);
 CREATE INDEX IF NOT EXISTS idx_products_active ON products(active);
 CREATE INDEX IF NOT EXISTS idx_orders_user_email ON orders(user_email);
-CREATE INDEX IF NOT EXISTS idx_orders_user_id ON orders(user_id);
 CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status);
+-- Create user_id index only if the column exists
+DO $$ 
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns 
+    WHERE table_name = 'orders' AND column_name = 'user_id'
+  ) THEN
+    CREATE INDEX IF NOT EXISTS idx_orders_user_id ON orders(user_id);
+  END IF;
+END $$;
 CREATE INDEX IF NOT EXISTS idx_customizations_product ON customizations(product_id);
 CREATE INDEX IF NOT EXISTS idx_contact_status ON contact_inquiries(status);
 CREATE INDEX IF NOT EXISTS idx_bulk_orders_status ON bulk_orders(status);
