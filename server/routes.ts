@@ -1,4 +1,5 @@
 import type { Express } from "express";
+import express from "express";
 import { createServer, type Server } from "http";
 import { supabase, supabaseAdmin } from "./supabase";
 import { requireAdmin } from "./middleware/auth";
@@ -2015,6 +2016,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       handleError(error, res);
     }
   });
+
+  // Serve stock images
+  app.use('/assets/stock_images', express.static('attached_assets/stock_images'));
 
   const httpServer = createServer(app);
   return httpServer;
