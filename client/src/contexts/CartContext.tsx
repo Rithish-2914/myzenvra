@@ -73,17 +73,24 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         if (response.ok) {
           const backendItems = await response.json();
           
+          console.log('[Cart] Backend items:', backendItems);
+          
           // Transform backend cart items to frontend format
-          const transformedItems: CartItem[] = backendItems.map((item: any) => ({
-            id: item.id,
-            productId: item.product_id,
-            name: item.product?.name || 'Product',
-            price: item.product?.price || 0,
-            quantity: item.quantity,
-            image: item.product?.image_url || item.product?.images?.[0] || '',
-            size: item.size || undefined,
-            color: item.color || undefined,
-          }));
+          const transformedItems: CartItem[] = backendItems.map((item: any) => {
+            console.log('[Cart] Product data:', item.product);
+            const image = item.product?.image_url || item.product?.images?.[0] || item.products?.image_url || '';
+            console.log('[Cart] Using image:', image);
+            return {
+              id: item.id,
+              productId: item.product_id,
+              name: item.product?.name || item.products?.name || 'Product',
+              price: item.product?.price || item.products?.price || 0,
+              quantity: item.quantity,
+              image,
+              size: item.size || undefined,
+              color: item.color || undefined,
+            };
+          });
           
           setItems(transformedItems);
         } else {
