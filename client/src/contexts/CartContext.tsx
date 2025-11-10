@@ -40,6 +40,9 @@ function getSessionId(): string {
   if (!sessionId) {
     sessionId = `session_${Date.now()}_${Math.random().toString(36).substring(7)}`;
     localStorage.setItem('cart_session_id', sessionId);
+    console.log('[Cart] Generated new session ID:', sessionId);
+  } else {
+    console.log('[Cart] Using existing session ID:', sessionId);
   }
   return sessionId;
 }
@@ -56,6 +59,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       try {
         const userId = user?.uid;
         const sessionId = getSessionId();
+        
+        console.log('[Cart] Fetching cart with:', { userId, sessionId });
         
         const params = new URLSearchParams();
         if (userId) {
