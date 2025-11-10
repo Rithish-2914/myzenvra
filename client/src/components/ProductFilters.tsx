@@ -2,15 +2,14 @@ import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
-import { useState } from "react";
 import { Category } from "@/../../shared/schema";
-
-const sizes = ["XS", "S", "M", "L", "XL", "2XL"];
 
 interface ProductFiltersProps {
   categories: Category[];
   selectedCategory: string | null;
   onCategorySelect: (categoryId: string | null) => void;
+  priceRange: number[];
+  onPriceRangeChange: (range: number[]) => void;
   isLoading?: boolean;
 }
 
@@ -18,9 +17,10 @@ export default function ProductFilters({
   categories, 
   selectedCategory, 
   onCategorySelect,
+  priceRange,
+  onPriceRangeChange,
   isLoading 
 }: ProductFiltersProps) {
-  const [priceRange, setPriceRange] = useState([0, 5000]);
 
   return (
     <Card className="p-6">
@@ -64,7 +64,7 @@ export default function ProductFilters({
           </Label>
           <Slider
             value={priceRange}
-            onValueChange={setPriceRange}
+            onValueChange={onPriceRangeChange}
             max={5000}
             step={100}
             data-testid="slider-price"

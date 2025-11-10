@@ -7,6 +7,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { CartProvider } from "@/contexts/CartContext";
 import Home from "@/pages/Home";
 import Shop from "@/pages/Shop";
+import ProductDetail from "@/pages/ProductDetail";
 import CustomizedGifts from "@/pages/CustomizedGifts";
 import Customize from "@/pages/Customize";
 import CustomizeChoice from "@/pages/CustomizeChoice";
@@ -41,6 +42,7 @@ function Router() {
     <Switch>
       <Route path="/" component={Home} />
       <Route path="/shop" component={Shop} />
+      <Route path="/product/:id" component={ProductDetail} />
       <Route path="/customized-gifts" component={CustomizedGifts} />
       <Route path="/customize" component={CustomizeChoice} />
       <Route path="/custom-print" component={CustomPrintOrder} />

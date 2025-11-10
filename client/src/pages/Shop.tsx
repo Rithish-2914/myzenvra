@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -8,12 +8,13 @@ import { Product, Category } from "@/../../shared/schema";
 
 export default function Shop() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [priceRange, setPriceRange] = useState<number[]>([0, 5000]);
 
   const { data: categories = [], isLoading: categoriesLoading } = useQuery<Category[]>({
     queryKey: ['/api/categories'],
   });
 
-  const { data: products = [], isLoading: productsLoading } = useQuery<Product[]>({
+  const { data: allProducts = [], isLoading: productsLoading } = useQuery<Product[]>({
     queryKey: ['/api/products', selectedCategory],
     queryFn: async () => {
       const url = selectedCategory 
@@ -25,8 +26,18 @@ export default function Shop() {
     },
   });
 
+  const products = useMemo(() => {
+    return allProducts.filter(
+      (product) => product.price >= priceRange[0] && product.price <= priceRange[1]
+    );
+  }, [allProducts, priceRange]);
+
   const handleCategorySelect = (categoryId: string | null) => {
     setSelectedCategory(categoryId);
+  };
+
+  const handlePriceRangeChange = (range: number[]) => {
+    setPriceRange(range);
   };
 
   return (
@@ -45,6 +56,8 @@ export default function Shop() {
                 categories={categories}
                 selectedCategory={selectedCategory}
                 onCategorySelect={handleCategorySelect}
+                priceRange={priceRange}
+                onPriceRangeChange={handlePriceRangeChange}
                 isLoading={categoriesLoading}
               />
             </div>

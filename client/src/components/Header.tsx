@@ -15,6 +15,7 @@ import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import AnnouncementBanner from "@/components/AnnouncementBanner";
+import logoImage from "@assets/Document_1762764739354.png";
 
 export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -34,10 +35,13 @@ export default function Header() {
     }
   }, [darkMode]);
 
-  const navLinks = [
+  const navLinksLeft = [
     { name: "Home", path: "/" },
     { name: "Shop", path: "/shop" },
     { name: "Customized Gifts", path: "/customized-gifts" },
+  ];
+
+  const navLinksRight = [
     { name: "Customize", path: "/customize" },
     { name: "About", path: "/about" },
     { name: "Blog", path: "/blog" },
@@ -57,7 +61,27 @@ export default function Header() {
           </Link>
 
           <nav className="hidden md:flex items-center gap-1">
-            {navLinks.map((link) => (
+            {navLinksLeft.map((link) => (
+              <Link key={link.path} href={link.path}>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  data-testid={`link-${link.name.toLowerCase()}`}
+                >
+                  {link.name}
+                </Button>
+              </Link>
+            ))}
+            
+            <div className="mx-2 px-2" data-testid="brand-logo">
+              <img 
+                src={logoImage} 
+                alt="ANVZ Logo" 
+                className="h-8 w-auto dark:invert"
+              />
+            </div>
+            
+            {navLinksRight.map((link) => (
               <Link key={link.path} href={link.path}>
                 <Button
                   variant="ghost"
@@ -184,7 +208,7 @@ export default function Header() {
       {mobileMenuOpen && (
         <div className="md:hidden border-t border-card-border bg-card">
           <nav className="px-4 py-4 flex flex-col gap-2">
-            {navLinks.map((link) => (
+            {[...navLinksLeft, ...navLinksRight].map((link) => (
               <Link key={link.path} href={link.path}>
                 <Button
                   variant="ghost"
