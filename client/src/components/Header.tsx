@@ -60,7 +60,7 @@ export default function Header() {
             </span>
           </Link>
 
-          <nav className="hidden md:flex items-center gap-1">
+          <nav className="hidden md:flex items-center gap-1 flex-wrap">
             {navLinksLeft.map((link) => (
               <Link key={link.path} href={link.path}>
                 <Button
@@ -73,11 +73,11 @@ export default function Header() {
               </Link>
             ))}
             
-            <div className="mx-2 px-2" data-testid="brand-logo">
+            <div className="mx-1" data-testid="brand-logo">
               <img 
                 src={logoImage} 
                 alt="ANVZ Logo" 
-                className="h-8 w-auto dark:invert"
+                className="h-7 w-auto dark:invert"
               />
             </div>
             
