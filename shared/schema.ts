@@ -29,17 +29,20 @@ export const productSchema = z.object({
   description: z.string().nullable(),
   price: z.number(),
   category_id: z.string().uuid().nullable(),
-  image_url: z.string(),
+  images: z.array(z.string()),
   customizable: z.boolean(),
   gift_type: z.enum(['none', 'watches', 'eyewear', 'frames', 'accessories']).nullable(),
   stock_quantity: z.number(),
-  sizes: z.array(z.string()),
+  available_sizes: z.array(z.string()),
   colors: z.array(z.string()),
+  tags: z.array(z.string()),
   featured: z.boolean(),
   active: z.boolean(),
   created_at: z.string(),
   updated_at: z.string(),
 });
+
+const ALL_SIZES = ["XS", "S", "M", "L", "XL", "XXL", "2XL", "3XL"] as const;
 
 export const insertProductSchema = z.object({
   name: z.string().min(1, "Product name is required"),
@@ -47,12 +50,13 @@ export const insertProductSchema = z.object({
   description: z.string().optional(),
   price: z.number().positive("Price must be positive"),
   category_id: z.string().uuid().optional(),
-  image_url: z.string().min(1, "Image URL is required"),
+  images: z.array(z.string().url("Each image must be a valid URL")).min(1, "At least one image is required").max(5, "Maximum 5 images allowed"),
   customizable: z.boolean().default(false),
   gift_type: z.enum(['none', 'watches', 'eyewear', 'frames', 'accessories']).default('none'),
   stock_quantity: z.number().int().nonnegative().default(0),
-  sizes: z.array(z.string()).default(["S", "M", "L", "XL"]),
+  available_sizes: z.array(z.enum(ALL_SIZES)).default(["S", "M", "L", "XL"]),
   colors: z.array(z.string()).default(["Beige", "Black", "White"]),
+  tags: z.array(z.string().transform(s => s.trim().toLowerCase())).default([]),
   featured: z.boolean().default(false),
   active: z.boolean().default(true),
 });
@@ -63,9 +67,10 @@ export const updateProductSchema = z.object({
   price: z.number().positive("Price must be positive").optional(),
   stock_quantity: z.number().int().nonnegative().optional(),
   category_id: z.string().uuid().nullable().optional(),
-  image_url: z.string().optional(),
-  sizes: z.array(z.string()).optional(),
+  images: z.array(z.string().url("Each image must be a valid URL")).min(1, "At least one image is required").max(5, "Maximum 5 images allowed").optional(),
+  available_sizes: z.array(z.enum(ALL_SIZES)).optional(),
   colors: z.array(z.string()).optional(),
+  tags: z.array(z.string().transform(s => s.trim().toLowerCase())).optional(),
   featured: z.boolean().optional(),
   active: z.boolean().optional(),
 });
