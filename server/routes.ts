@@ -172,6 +172,76 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get related products (public)
+  app.get("/api/products/:id/related", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const limit = parseInt(req.query.limit as string) || 4;
+
+      const { data: currentProduct } = await supabase
+        .from("products")
+        .select("*")
+        .eq("id", id)
+        .single();
+
+      if (!currentProduct) {
+        return res.json([]);
+      }
+
+      const { data: allProducts } = await supabase
+        .from("products")
+        .select("*, categories(*)")
+        .eq("active", true)
+        .neq("id", id);
+
+      if (!allProducts || allProducts.length === 0) {
+        return res.json([]);
+      }
+
+      const scoredProducts = allProducts.map(product => {
+        let score = 0;
+
+        if (product.category_id === currentProduct.category_id) {
+          score += 100;
+        }
+
+        const currentTags = currentProduct.tags || [];
+        const productTags = product.tags || [];
+        const tagOverlap = currentTags.filter((tag: string) => productTags.includes(tag)).length;
+        score += tagOverlap * 20;
+
+        const currentColors = currentProduct.colors || [];
+        const productColors = product.colors || [];
+        const colorOverlap = currentColors.filter((color: string) => productColors.includes(color)).length;
+        score += colorOverlap * 10;
+
+        const currentSizes = currentProduct.available_sizes || currentProduct.sizes || [];
+        const productSizes = product.available_sizes || product.sizes || [];
+        const sizeOverlap = currentSizes.filter((size: string) => productSizes.includes(size)).length;
+        score += sizeOverlap * 5;
+
+        const priceDiff = Math.abs(product.price - currentProduct.price);
+        const priceProximity = Math.max(0, 100 - (priceDiff / currentProduct.price) * 100);
+        score += priceProximity * 0.3;
+
+        if (product.featured) {
+          score += 15;
+        }
+
+        return { ...product, _score: score };
+      });
+
+      const sortedProducts = scoredProducts
+        .sort((a, b) => b._score - a._score)
+        .slice(0, limit)
+        .map(({ _score, ...product }) => product);
+
+      res.json(sortedProducts);
+    } catch (error: any) {
+      handleError(error, res);
+    }
+  });
+
   // Create product (admin only)
   app.post("/api/products", requireAdmin, async (req, res) => {
     try {

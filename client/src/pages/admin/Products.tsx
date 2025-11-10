@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -14,9 +16,11 @@ import {
 } from "@/components/ui/select";
 import { apiRequest, queryClient as globalQueryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Plus, Pencil, Trash2, X, GripVertical } from "lucide-react";
 import AdminRoute from "@/components/AdminRoute";
 import DashboardLayout from "./Dashboard";
+
+const ALL_SIZES = ["XS", "S", "M", "L", "XL", "XXL", "2XL", "3XL"] as const;
 
 function ProductsPage() {
   const { toast } = useToast();
@@ -29,12 +33,13 @@ function ProductsPage() {
     description: "",
     price: "",
     category_id: "",
-    image_url: "",
+    images: [""],
     customizable: false,
     gift_type: "none" as "none" | "watches" | "eyewear" | "frames" | "accessories",
     stock_quantity: "0",
-    sizes: ["S", "M", "L", "XL"],
+    available_sizes: { S: true, M: true, L: true, XL: true } as Record<string, boolean>,
     colors: ["Beige", "Black", "White"],
+    tags: [] as string[],
     featured: false,
     active: true,
   });
@@ -92,11 +97,29 @@ function ProductsPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    const validImages = formData.images.filter(img => img.trim() !== "");
+    if (validImages.length === 0) {
+      toast({ title: "Error", description: "At least one image is required", variant: "destructive" });
+      return;
+    }
+    if (validImages.length > 5) {
+      toast({ title: "Error", description: "Maximum 5 images allowed", variant: "destructive" });
+      return;
+    }
+
+    const selectedSizes = Object.entries(formData.available_sizes)
+      .filter(([_, selected]) => selected)
+      .map(([size]) => size);
+
     const productData = {
       ...formData,
       price: parseFloat(formData.price),
       stock_quantity: parseInt(formData.stock_quantity),
       slug: formData.slug || formData.name.toLowerCase().replace(/\s+/g, '-'),
+      images: validImages,
+      available_sizes: selectedSizes,
+      tags: formData.tags.map(tag => tag.trim().toLowerCase()),
     };
 
     if (isEditing && editingProduct) {
@@ -109,18 +132,33 @@ function ProductsPage() {
   const handleEdit = (product: any) => {
     setIsEditing(true);
     setEditingProduct(product);
+    
+    const images = product.images && product.images.length > 0
+      ? product.images
+      : product.image_url
+      ? [product.image_url]
+      : [""];
+
+    const sizesMap: Record<string, boolean> = {};
+    ALL_SIZES.forEach(size => {
+      sizesMap[size] = product.available_sizes?.includes(size) || 
+                       product.sizes?.includes(size) || 
+                       false;
+    });
+
     setFormData({
       name: product.name,
       slug: product.slug,
       description: product.description || "",
       price: product.price.toString(),
       category_id: product.category_id || "",
-      image_url: product.image_url,
+      images: images,
       customizable: product.customizable,
       gift_type: product.gift_type || "none",
       stock_quantity: product.stock_quantity.toString(),
-      sizes: product.sizes || ["S", "M", "L", "XL"],
+      available_sizes: sizesMap,
       colors: product.colors || ["Beige", "Black", "White"],
+      tags: product.tags || [],
       featured: product.featured,
       active: product.active,
     });
@@ -135,12 +173,13 @@ function ProductsPage() {
       description: "",
       price: "",
       category_id: "",
-      image_url: "",
+      images: [""],
       customizable: false,
       gift_type: "none" as "none" | "watches" | "eyewear" | "frames" | "accessories",
       stock_quantity: "0",
-      sizes: ["S", "M", "L", "XL"],
+      available_sizes: { S: true, M: true, L: true, XL: true },
       colors: ["Beige", "Black", "White"],
+      tags: [],
       featured: false,
       active: true,
     });
@@ -236,36 +275,135 @@ function ProductsPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="image_url">Image URL</Label>
-                  <Input
-                    id="image_url"
-                    value={formData.image_url}
-                    onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
-                    placeholder="https://..."
-                    required
-                  />
+              <div>
+                <Label>Product Images (1-5 images)</Label>
+                <div className="space-y-2">
+                  {formData.images.map((image, index) => (
+                    <div key={index} className="flex gap-2">
+                      <Input
+                        value={image}
+                        onChange={(e) => {
+                          const newImages = [...formData.images];
+                          newImages[index] = e.target.value;
+                          setFormData({ ...formData, images: newImages });
+                        }}
+                        placeholder="https://..."
+                        data-testid={`input-image-${index}`}
+                      />
+                      {formData.images.length > 1 && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => {
+                            const newImages = formData.images.filter((_, i) => i !== index);
+                            setFormData({ ...formData, images: newImages });
+                          }}
+                          data-testid={`button-remove-image-${index}`}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                  ))}
+                  {formData.images.length < 5 && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setFormData({ ...formData, images: [...formData.images, ""] })}
+                      data-testid="button-add-image"
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Image
+                    </Button>
+                  )}
                 </div>
-                <div>
-                  <Label htmlFor="gift_type">Gift Type (for Customized Gifts)</Label>
-                  <Select
-                    value={formData.gift_type}
-                    onValueChange={(value: "none" | "watches" | "eyewear" | "frames" | "accessories") => 
-                      setFormData({ ...formData, gift_type: value })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select gift type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">None (Regular Product)</SelectItem>
-                      <SelectItem value="watches">Custom Watches</SelectItem>
-                      <SelectItem value="eyewear">Custom Eyewear</SelectItem>
-                      <SelectItem value="frames">Photo Frames</SelectItem>
-                      <SelectItem value="accessories">Custom Accessories</SelectItem>
-                    </SelectContent>
-                  </Select>
+              </div>
+
+              <div>
+                <Label htmlFor="gift_type">Gift Type (for Customized Gifts)</Label>
+                <Select
+                  value={formData.gift_type}
+                  onValueChange={(value: "none" | "watches" | "eyewear" | "frames" | "accessories") => 
+                    setFormData({ ...formData, gift_type: value })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select gift type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">None (Regular Product)</SelectItem>
+                    <SelectItem value="watches">Custom Watches</SelectItem>
+                    <SelectItem value="eyewear">Custom Eyewear</SelectItem>
+                    <SelectItem value="frames">Photo Frames</SelectItem>
+                    <SelectItem value="accessories">Custom Accessories</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label>Available Sizes</Label>
+                <div className="grid grid-cols-4 gap-3 mt-2">
+                  {ALL_SIZES.map((size) => (
+                    <div key={size} className="flex items-center gap-2">
+                      <Checkbox
+                        id={`size-${size}`}
+                        checked={formData.available_sizes[size]}
+                        onCheckedChange={(checked) => {
+                          setFormData({
+                            ...formData,
+                            available_sizes: {
+                              ...formData.available_sizes,
+                              [size]: checked as boolean,
+                            },
+                          });
+                        }}
+                        data-testid={`checkbox-size-${size}`}
+                      />
+                      <Label htmlFor={`size-${size}`} className="cursor-pointer">{size}</Label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <Label htmlFor="tags">Tags (for product recommendations)</Label>
+                <div className="flex flex-wrap gap-2 mb-2">
+                  {formData.tags.map((tag, index) => (
+                    <Badge key={index} variant="secondary" data-testid={`badge-tag-${index}`}>
+                      {tag}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const newTags = formData.tags.filter((_, i) => i !== index);
+                          setFormData({ ...formData, tags: newTags });
+                        }}
+                        className="ml-1"
+                        data-testid={`button-remove-tag-${index}`}
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  ))}
+                </div>
+                <div className="flex gap-2">
+                  <Input
+                    id="tags"
+                    placeholder="Enter tag and press Enter"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === ",") {
+                        e.preventDefault();
+                        const input = e.currentTarget;
+                        const tag = input.value.trim().toLowerCase();
+                        if (tag && !formData.tags.includes(tag)) {
+                          setFormData({ ...formData, tags: [...formData.tags, tag] });
+                          input.value = "";
+                        }
+                      }
+                    }}
+                    data-testid="input-tags"
+                  />
                 </div>
               </div>
 
@@ -315,12 +453,23 @@ function ProductsPage() {
             products?.map((product: any) => (
               <Card key={product.id} className="p-4">
                 <div className="aspect-square bg-muted rounded-md mb-4 overflow-hidden">
-                  {product.image_url && (
-                    <img src={product.image_url} alt={product.name} className="w-full h-full object-cover" />
+                  {(product.images?.[0] || product.image_url) && (
+                    <img 
+                      src={product.images?.[0] || product.image_url} 
+                      alt={product.name} 
+                      className="w-full h-full object-cover" 
+                    />
                   )}
                 </div>
                 <h3 className="font-semibold mb-2">{product.name}</h3>
                 <p className="text-2xl font-bold text-primary mb-2">₹{product.price}</p>
+                <div className="flex flex-wrap gap-1 mb-2">
+                  {product.tags?.slice(0, 3).map((tag: string, idx: number) => (
+                    <Badge key={idx} variant="outline" className="text-xs">
+                      {tag}
+                    </Badge>
+                  ))}
+                </div>
                 <p className="text-sm text-muted-foreground mb-4">
                   Stock: {product.stock_quantity} | {product.active ? "Active" : "Inactive"}
                 </p>
