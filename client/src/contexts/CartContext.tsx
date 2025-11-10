@@ -135,7 +135,33 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     const userId = user?.uid;
     const sessionId = getSessionId();
 
+    // OPTIMISTIC UPDATE - Update UI immediately
+    const tempId = `temp_${Date.now()}`;
+    const optimisticItem: CartItem = {
+      ...item,
+      id: tempId,
+      quantity: item.quantity || 1
+    };
+
+    setItems((currentItems) => {
+      const existingIndex = currentItems.findIndex(
+        (i) =>
+          i.productId === item.productId &&
+          i.size === item.size &&
+          i.color === item.color
+      );
+
+      if (existingIndex > -1) {
+        const updated = [...currentItems];
+        updated[existingIndex].quantity += item.quantity || 1;
+        return updated;
+      } else {
+        return [...currentItems, optimisticItem];
+      }
+    });
+
     try {
+      // Make API request in background
       const response = await apiRequest('POST', '/api/cart', {
         user_id: userId,
         session_id: !userId ? sessionId : undefined,
@@ -147,104 +173,69 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
       const addedItem = await response.json();
       
-      // Update local state
-      setItems((currentItems) => {
-        const existingIndex = currentItems.findIndex(
-          (i) =>
-            i.productId === item.productId &&
-            i.size === item.size &&
-            i.color === item.color
-        );
-
-        if (existingIndex > -1) {
-          const updated = [...currentItems];
-          updated[existingIndex].quantity = addedItem.quantity;
-          return updated;
-        } else {
-          return [
-            ...currentItems,
-            {
-              id: addedItem.id,
-              productId: item.productId,
-              name: item.name,
-              price: item.price,
-              image: item.image,
-              quantity: addedItem.quantity,
-              size: item.size,
-              color: item.color,
-            }
-          ];
-        }
-      });
+      // Replace optimistic item with real data from server
+      setItems((currentItems) => 
+        currentItems.map(i => i.id === tempId ? {
+          id: addedItem.id,
+          productId: item.productId,
+          name: item.name,
+          price: item.price,
+          image: item.image,
+          quantity: addedItem.quantity,
+          size: item.size,
+          color: item.color,
+        } : i)
+      );
     } catch (error) {
-      console.warn('Backend unavailable, using local cart:', error);
-      // Fallback to local-only add if backend fails - don't throw error
-      setItems((currentItems) => {
-        const existingIndex = currentItems.findIndex(
-          (i) =>
-            i.productId === item.productId &&
-            i.size === item.size &&
-            i.color === item.color
-        );
-
-        if (existingIndex > -1) {
-          const updated = [...currentItems];
-          updated[existingIndex].quantity += item.quantity || 1;
-          return updated;
-        } else {
-          return [
-            ...currentItems,
-            {
-              ...item,
-              id: `local_${Date.now()}`,
-              quantity: item.quantity || 1
-            }
-          ];
-        }
-      });
-      // Don't throw - operation succeeded locally
+      console.warn('Backend unavailable, keeping optimistic update:', error);
+      // Keep the optimistic update - don't revert
     }
   };
 
   const removeItem = async (id: string) => {
+    // OPTIMISTIC UPDATE - Remove from UI immediately
+    const removedItem = items.find(item => item.id === id);
+    setItems((currentItems) => currentItems.filter((item) => item.id !== id));
+
     try {
       await apiRequest('DELETE', `/api/cart/${id}`);
-      setItems((currentItems) => currentItems.filter((item) => item.id !== id));
     } catch (error) {
-      console.warn('Backend unavailable, using local cart:', error);
-      // Still remove locally even if backend fails - don't throw error
-      setItems((currentItems) => currentItems.filter((item) => item.id !== id));
-      // Don't throw - operation succeeded locally
+      console.warn('Backend unavailable, item removed locally:', error);
+      // If API fails, item is still removed locally (which is fine for UX)
+      // We could revert here if needed: setItems(prev => [...prev, removedItem])
     }
   };
 
   const updateQuantity = async (id: string, quantity: number) => {
     if (quantity <= 0) {
       await removeItem(id);
-    } else {
-      try {
-        await apiRequest('PUT', `/api/cart/${id}`, { quantity });
-        setItems((currentItems) =>
-          currentItems.map((item) =>
-            item.id === id ? { ...item, quantity } : item
-          )
-        );
-      } catch (error) {
-        console.warn('Backend unavailable, using local cart:', error);
-        // Still update locally even if backend fails - don't throw error
-        setItems((currentItems) =>
-          currentItems.map((item) =>
-            item.id === id ? { ...item, quantity } : item
-          )
-        );
-        // Don't throw - operation succeeded locally
-      }
+      return;
+    }
+
+    // OPTIMISTIC UPDATE - Update UI immediately
+    const previousItems = items;
+    setItems((currentItems) =>
+      currentItems.map((item) =>
+        item.id === id ? { ...item, quantity } : item
+      )
+    );
+
+    try {
+      await apiRequest('PUT', `/api/cart/${id}`, { quantity });
+    } catch (error) {
+      console.warn('Backend unavailable, keeping optimistic update:', error);
+      // We could revert on error: setItems(previousItems)
+      // But for better UX, we keep the optimistic update
     }
   };
 
   const clearCart = async () => {
     const userId = user?.uid;
     const sessionId = getSessionId();
+
+    // OPTIMISTIC UPDATE - Clear UI immediately
+    const previousItems = items;
+    setItems([]);
 
     try {
       const params = new URLSearchParams();
@@ -255,12 +246,9 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       }
 
       await apiRequest('DELETE', `/api/cart?${params}`);
-      setItems([]);
     } catch (error) {
-      console.warn('Backend unavailable, using local cart:', error);
-      // Still clear locally even if backend fails - don't throw error
-      setItems([]);
-      // Don't throw - operation succeeded locally
+      console.warn('Backend unavailable, cart cleared locally:', error);
+      // We could revert: setItems(previousItems)
     }
   };
 
