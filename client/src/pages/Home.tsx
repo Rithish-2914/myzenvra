@@ -1,6 +1,8 @@
 import Header from "@/components/Header";
 import Hero from "@/components/Hero";
 import CategoryShowcase from "@/components/CategoryShowcase";
+import AboutSection from "@/components/AboutSection";
+import BlogSection from "@/components/BlogSection";
 import Testimonials from "@/components/Testimonials";
 import Footer from "@/components/Footer";
 
@@ -10,6 +12,8 @@ export default function Home() {
       <Header />
       <Hero />
       <CategoryShowcase />
+      <AboutSection />
+      <BlogSection />
       <Testimonials />
       <Footer />
     </div>
