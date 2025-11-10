@@ -41,7 +41,7 @@ export default function ProductDetail() {
   const handleAddToCart = () => {
     if (!product) return;
     
-    if (product.sizes.length > 0 && !selectedSize) {
+    if (product.sizes && product.sizes.length > 0 && !selectedSize) {
       toast({
         title: "Please select a size",
         variant: "destructive",
@@ -49,7 +49,7 @@ export default function ProductDetail() {
       return;
     }
     
-    if (product.colors.length > 0 && !selectedColor) {
+    if (product.colors && product.colors.length > 0 && !selectedColor) {
       toast({
         title: "Please select a color",
         variant: "destructive",
@@ -150,7 +150,7 @@ export default function ProductDetail() {
               </div>
             )}
 
-            {product.sizes.length > 0 && (
+            {product.sizes && product.sizes.length > 0 && (
               <div className="mb-6">
                 <h3 className="text-sm font-semibold mb-3">Size</h3>
                 <div className="flex flex-wrap gap-2">
@@ -169,7 +169,7 @@ export default function ProductDetail() {
               </div>
             )}
 
-            {product.colors.length > 0 && (
+            {product.colors && product.colors.length > 0 && (
               <div className="mb-6">
                 <h3 className="text-sm font-semibold mb-3">Color</h3>
                 <div className="flex flex-wrap gap-2">
