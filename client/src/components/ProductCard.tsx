@@ -1,3 +1,4 @@
+import { type MouseEvent } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -27,7 +28,7 @@ export default function ProductCard({
   const { addItem } = useCart();
   const { toast } = useToast();
 
-  const handleAddToCart = (e: React.MouseEvent) => {
+  const handleAddToCart = (e: MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     
@@ -53,7 +54,7 @@ export default function ProductCard({
     }
   };
 
-  const handleCustomize = (e: React.MouseEvent) => {
+  const handleCustomize = (e: MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     window.location.href = '/customize';
