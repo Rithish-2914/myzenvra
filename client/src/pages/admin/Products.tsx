@@ -19,6 +19,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Plus, Pencil, Trash2, X, GripVertical } from "lucide-react";
 import AdminRoute from "@/components/AdminRoute";
 import DashboardLayout from "./Dashboard";
+import { ImageUpload } from "@/components/ImageUpload";
 
 const ALL_SIZES = ["XS", "S", "M", "L", "XL", "XXL", "2XL", "3XL"] as const;
 
@@ -298,46 +299,51 @@ function ProductsPage() {
 
               <div>
                 <Label>Product Images (1-5 images)</Label>
-                <div className="space-y-2">
-                  {formData.images.map((image, index) => (
-                    <div key={index} className="flex gap-2">
-                      <Input
-                        value={image}
-                        onChange={(e) => {
-                          const newImages = [...formData.images];
-                          newImages[index] = e.target.value;
-                          setFormData({ ...formData, images: newImages });
-                        }}
-                        placeholder="https://..."
-                        data-testid={`input-image-${index}`}
-                      />
-                      {formData.images.length > 1 && (
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => {
-                            const newImages = formData.images.filter((_, i) => i !== index);
-                            setFormData({ ...formData, images: newImages });
-                          }}
-                          data-testid={`button-remove-image-${index}`}
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      )}
+                <p className="text-sm text-muted-foreground mb-3">
+                  Upload images directly. At least one image is required.
+                </p>
+                <div className="space-y-4">
+                  {formData.images.filter(img => img !== "").length < 5 && (
+                    <ImageUpload
+                      label="Upload Product Image"
+                      onImageUploaded={(url) => {
+                        const validImages = formData.images.filter(img => img !== "");
+                        if (validImages.length >= 5) {
+                          toast({ title: "Error", description: "Maximum 5 images allowed", variant: "destructive" });
+                          return;
+                        }
+                        setFormData({ ...formData, images: [...validImages, url] });
+                      }}
+                    />
+                  )}
+                  
+                  {formData.images.filter(img => img !== "").length > 0 && (
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                      {formData.images.filter(img => img !== "").map((image, index) => (
+                        <div key={index} className="relative group">
+                          <img 
+                            src={image} 
+                            alt={`Product ${index + 1}`} 
+                            className="w-full aspect-square object-cover rounded-md border"
+                            data-testid={`img-product-${index}`}
+                          />
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="icon"
+                            className="absolute top-2 right-2 h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                            onClick={() => {
+                              const validImages = formData.images.filter(img => img !== "");
+                              const newImages = validImages.filter((_, i) => i !== index);
+                              setFormData({ ...formData, images: newImages.length > 0 ? newImages : [""] });
+                            }}
+                            data-testid={`button-remove-image-${index}`}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                  {formData.images.length < 5 && (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setFormData({ ...formData, images: [...formData.images, ""] })}
-                      data-testid="button-add-image"
-                    >
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add Image
-                    </Button>
                   )}
                 </div>
               </div>
@@ -345,64 +351,56 @@ function ProductsPage() {
               <div>
                 <Label>Color-Specific Images (Optional)</Label>
                 <p className="text-sm text-muted-foreground mb-3">
-                  Upload images for specific colors. When a customer selects a color, they'll see these images instead of the default images.
+                  Upload images for specific colors. When a customer selects a color, they'll see these images.
                 </p>
                 <div className="space-y-4">
                   {formData.colors.map((color) => (
                     <div key={color} className="border rounded-md p-4">
-                      <Label className="mb-2 block font-semibold">{color}</Label>
-                      <div className="space-y-2">
-                        {(formData.color_images[color] || []).map((url, index) => (
-                          <div key={index} className="flex gap-2">
-                            <Input
-                              value={url}
-                              onChange={(e) => {
-                                const newColorImages = { ...formData.color_images };
-                                if (!newColorImages[color]) newColorImages[color] = [];
-                                const newUrls = [...newColorImages[color]];
-                                newUrls[index] = e.target.value;
-                                newColorImages[color] = newUrls;
-                                setFormData({ ...formData, color_images: newColorImages });
-                              }}
-                              placeholder={`https://... (${color} image)`}
-                              data-testid={`input-color-image-${color}-${index}`}
-                            />
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => {
-                                const newColorImages = { ...formData.color_images };
-                                if (newColorImages[color]) {
-                                  newColorImages[color] = newColorImages[color].filter((_, i) => i !== index);
-                                  if (newColorImages[color].length === 0) {
-                                    delete newColorImages[color];
+                      <Label className="mb-3 block font-semibold">{color}</Label>
+                      
+                      <ImageUpload
+                        label={`Upload ${color} Image`}
+                        onImageUploaded={(url) => {
+                          const newColorImages = { ...formData.color_images };
+                          if (!newColorImages[color]) newColorImages[color] = [];
+                          newColorImages[color].push(url);
+                          setFormData({ ...formData, color_images: newColorImages });
+                        }}
+                      />
+                      
+                      {(formData.color_images[color] || []).length > 0 && (
+                        <div className="grid grid-cols-3 gap-3 mt-3">
+                          {(formData.color_images[color] || []).map((url, index) => (
+                            <div key={index} className="relative group">
+                              <img 
+                                src={url} 
+                                alt={`${color} ${index + 1}`} 
+                                className="w-full aspect-square object-cover rounded-md border"
+                                data-testid={`img-color-${color}-${index}`}
+                              />
+                              <Button
+                                type="button"
+                                variant="destructive"
+                                size="icon"
+                                className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                                onClick={() => {
+                                  const newColorImages = { ...formData.color_images };
+                                  if (newColorImages[color]) {
+                                    newColorImages[color] = newColorImages[color].filter((_, i) => i !== index);
+                                    if (newColorImages[color].length === 0) {
+                                      delete newColorImages[color];
+                                    }
                                   }
-                                }
-                                setFormData({ ...formData, color_images: newColorImages });
-                              }}
-                              data-testid={`button-remove-color-image-${color}-${index}`}
-                            >
-                              <X className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        ))}
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            const newColorImages = { ...formData.color_images };
-                            if (!newColorImages[color]) newColorImages[color] = [];
-                            newColorImages[color].push("");
-                            setFormData({ ...formData, color_images: newColorImages });
-                          }}
-                          data-testid={`button-add-color-image-${color}`}
-                        >
-                          <Plus className="h-4 w-4 mr-2" />
-                          Add {color} Image
-                        </Button>
-                      </div>
+                                  setFormData({ ...formData, color_images: newColorImages });
+                                }}
+                                data-testid={`button-remove-color-image-${color}-${index}`}
+                              >
+                                <X className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>

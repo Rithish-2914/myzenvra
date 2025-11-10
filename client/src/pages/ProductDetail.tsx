@@ -1,4 +1,4 @@
-import { useRoute, Link } from "wouter";
+import { useRoute, Link, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { Product } from "@/../../shared/schema";
 import Header from "@/components/Header";
@@ -16,6 +16,7 @@ export default function ProductDetail() {
   const productId = params?.id;
   const { toast } = useToast();
   const { addItem } = useCart();
+  const [, setLocation] = useLocation();
   
   const [selectedSize, setSelectedSize] = useState<string>("");
   const [selectedColor, setSelectedColor] = useState<string>("");
@@ -103,6 +104,10 @@ export default function ProductDetail() {
         title: "Added to cart",
         description: `${product.name} has been added to your cart`,
       });
+      
+      setTimeout(() => {
+        setLocation('/cart');
+      }, 500);
     } catch (error) {
       toast({
         title: "Error",
