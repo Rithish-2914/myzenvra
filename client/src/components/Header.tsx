@@ -15,7 +15,7 @@ import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import AnnouncementBanner from "@/components/AnnouncementBanner";
-import logoImage from "@assets/Document_1762764739354.png";
+import logoImage from "@assets/Document-removebg-preview_1762878973331.png";
 
 export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
