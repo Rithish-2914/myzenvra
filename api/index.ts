@@ -537,6 +537,79 @@ async function getApp(): Promise<Express> {
       handleError(error, res);
     }
   });
+
+  // ============ USER ORDERS ============
+  
+  // Get user's orders (My Orders)
+  app.get("/api/my-orders", async (req: Request, res: Response) => {
+    try {
+      const { user_id, user_email } = req.query;
+
+      if (!user_id && !user_email) {
+        return res.status(400).json({ error: "user_id or user_email required" });
+      }
+
+      let query = supabaseAdmin.from("orders").select("*");
+
+      if (user_id) {
+        query = query.eq("user_id", user_id);
+      } else {
+        query = query.eq("user_email", user_email);
+      }
+
+      const { data: orders, error } = await query.order("created_at", { ascending: false });
+
+      if (error) throw error;
+
+      const ordersWithEvents = await Promise.all(
+        (orders || []).map(async (order) => {
+          const { data: events } = await supabaseAdmin
+            .from("order_events")
+            .select("*")
+            .eq("order_id", order.id)
+            .order("created_at", { ascending: false });
+
+          return {
+            ...order,
+            events: events || [],
+          };
+        })
+      );
+
+      res.json(ordersWithEvents);
+    } catch (error: any) {
+      handleError(error, res);
+    }
+  });
+
+  // Get order details with events
+  app.get("/api/orders/:id/details", async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+
+      // Get order
+      const { data: order, error: orderError } = await supabaseAdmin
+        .from("orders")
+        .select("*")
+        .eq("id", id)
+        .single();
+
+      if (orderError) throw orderError;
+
+      // Get order events
+      const { data: events, error: eventsError } = await supabaseAdmin
+        .from("order_events")
+        .select("*")
+        .eq("order_id", id)
+        .order("created_at", { ascending: true });
+
+      if (eventsError) throw eventsError;
+
+      res.json({ ...order, events: events || [] });
+    } catch (error: any) {
+      handleError(error, res);
+    }
+  });
   
   console.log('✅ Express app initialized for Vercel serverless function');
   
