@@ -31,24 +31,32 @@ export const getQueryFn: <T>(options: {
   async ({ queryKey }) => {
     let url: string;
     
-    if (queryKey.length === 1) {
-      url = queryKey[0] as string;
-    } else {
-      const baseUrl = queryKey[0] as string;
-      const params = queryKey[1];
-      
-      if (typeof params === 'object' && params !== null && !Array.isArray(params)) {
-        const searchParams = new URLSearchParams();
-        Object.entries(params).forEach(([key, value]) => {
-          if (value !== undefined && value !== null && value !== '') {
-            searchParams.append(key, String(value));
-          }
-        });
-        const queryString = searchParams.toString();
-        url = queryString ? `${baseUrl}?${queryString}` : baseUrl;
-      } else {
-        url = queryKey.join("/") as string;
+    const stringParts: string[] = [];
+    const params: Record<string, any> = {};
+    
+    for (const part of queryKey) {
+      if (typeof part === 'string') {
+        stringParts.push(part);
+      } else if (typeof part === 'object' && part !== null && !Array.isArray(part)) {
+        Object.assign(params, part);
+      } else if (part !== null && part !== undefined) {
+        stringParts.push(String(part));
       }
+    }
+    
+    const basePath = stringParts.join('/');
+    const hasParams = Object.keys(params).length > 0;
+    
+    if (hasParams) {
+      const urlObj = new URL(basePath, window.location.origin);
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== '') {
+          urlObj.searchParams.append(key, String(value));
+        }
+      });
+      url = urlObj.pathname + urlObj.search;
+    } else {
+      url = basePath;
     }
     
     const res = await fetch(url, {
