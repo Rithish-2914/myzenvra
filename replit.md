@@ -63,6 +63,29 @@ Preferred communication style: Simple, everyday language.
 
 **Database Strategy**: User-centric design with guest support (cart uses session_id OR user_id), Firebase UID as primary user identifier, Supabase RLS (Row Level Security) ready but using service role key for admin operations.
 
+### Ordering System
+- **Guest Shopping**: Users can browse products and add items to cart without authentication (session-based cart)
+- **Checkout Requirement**: Authentication required to place orders (Firebase login mandatory)
+- **Payment Methods**: 
+  - Cash on Delivery (COD) - Fully functional
+  - UPI Payment - Coming soon (UI disabled)
+  - Credit/Debit Card - Coming soon (UI disabled)
+- **Payment Fields**: 
+  - `payment_method` - Stores selected payment type (cod/upi/card)
+  - `payment_status` - Tracks payment state (pending/paid/failed)
+- **Order Tracking**: 
+  - Order events table records status changes with timestamps and notes
+  - Customer "My Orders" page displays complete order timeline
+  - Admin can update status: pending → confirmed → processing → shipped → delivered → cancelled
+- **Order Flow**:
+  1. Guest adds items to cart (no login required)
+  2. User attempts checkout → prompted to sign in
+  3. After login, cart persists and user completes shipping/payment info
+  4. Order created with initial "pending" status and event
+  5. Cart automatically cleared after successful order
+  6. Order appears in admin dashboard and customer's "My Orders"
+  7. Admin updates status → creates new order event → customer sees tracking update
+
 ### Storage Architecture
 - **Provider**: Supabase Storage
 - **Buckets**: Organized for product images, custom uploads, and user-generated content
