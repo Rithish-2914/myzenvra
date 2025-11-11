@@ -540,7 +540,45 @@ async function getApp(): Promise<Express> {
 
   // ============ USER ORDERS ============
   
-  // Get user's orders (My Orders)
+  // Get user's orders by user_id (path parameter)
+  app.get("/api/my-orders/:user_id", async (req: Request, res: Response) => {
+    try {
+      const { user_id } = req.params;
+
+      if (!user_id) {
+        return res.status(400).json({ error: "user_id required" });
+      }
+
+      const { data: orders, error } = await supabaseAdmin
+        .from("orders")
+        .select("*")
+        .eq("user_id", user_id)
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+
+      const ordersWithEvents = await Promise.all(
+        (orders || []).map(async (order) => {
+          const { data: events } = await supabaseAdmin
+            .from("order_events")
+            .select("*")
+            .eq("order_id", order.id)
+            .order("created_at", { ascending: false });
+
+          return {
+            ...order,
+            events: events || [],
+          };
+        })
+      );
+
+      res.json(ordersWithEvents);
+    } catch (error: any) {
+      handleError(error, res);
+    }
+  });
+
+  // Get user's orders (My Orders) - query parameter version
   app.get("/api/my-orders", async (req: Request, res: Response) => {
     try {
       const { user_id, user_email } = req.query;
