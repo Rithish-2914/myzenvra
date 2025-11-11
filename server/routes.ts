@@ -1067,7 +1067,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (validatedData.size) query = query.eq("size", validatedData.size);
       if (validatedData.color) query = query.eq("color", validatedData.color);
 
-      const { data: existing } = await query.single();
+      const { data: existingItems } = await query.limit(1);
+      const existing = existingItems && existingItems.length > 0 ? existingItems[0] : null;
 
       let result;
       if (existing) {
