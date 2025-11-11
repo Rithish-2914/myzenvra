@@ -3,6 +3,19 @@ import express, { Express, Request, Response } from 'express';
 import { createClient } from '@supabase/supabase-js';
 import admin from 'firebase-admin';
 import { ZodError } from 'zod';
+import { z } from 'zod';
+
+// Cart item schema for validation
+const insertCartItemSchema = z.object({
+  user_id: z.string().optional(),
+  session_id: z.string().optional(),
+  product_id: z.string(),
+  quantity: z.number().int().positive(),
+  size: z.string().optional(),
+  color: z.string().optional(),
+  customization_text: z.string().optional(),
+  customization_image_url: z.string().optional(),
+});
 
 // Supabase setup
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://placeholder.supabase.co';
@@ -330,6 +343,196 @@ async function getApp(): Promise<Express> {
 
       if (error) throw error;
       res.json(data);
+    } catch (error: any) {
+      handleError(error, res);
+    }
+  });
+
+  // ============ CART ITEMS ============
+  
+  // Get cart items (by user_id or session_id)
+  app.get("/api/cart", async (req: Request, res: Response) => {
+    try {
+      const { user_id, session_id } = req.query;
+      
+      if (!user_id && !session_id) {
+        return res.status(400).json({ error: "user_id or session_id required" });
+      }
+
+      let query = supabaseAdmin
+        .from("cart_items")
+        .select("*, products(*)");
+
+      if (user_id) {
+        query = query.eq("user_id", user_id);
+      } else {
+        query = query.eq("session_id", session_id);
+      }
+
+      const { data, error } = await query.order("created_at", { ascending: false });
+
+      if (error) throw error;
+      res.json(data || []);
+    } catch (error: any) {
+      handleError(error, res);
+    }
+  });
+
+  // Add item to cart
+  app.post("/api/cart", async (req: Request, res: Response) => {
+    try {
+      const validatedData = insertCartItemSchema.parse(req.body);
+      
+      // Check if item already exists in cart
+      let query = supabaseAdmin.from("cart_items").select("*");
+      
+      if (validatedData.user_id) {
+        query = query.eq("user_id", validatedData.user_id);
+      } else if (validatedData.session_id) {
+        query = query.eq("session_id", validatedData.session_id);
+      }
+      
+      query = query.eq("product_id", validatedData.product_id);
+      if (validatedData.size) query = query.eq("size", validatedData.size);
+      if (validatedData.color) query = query.eq("color", validatedData.color);
+
+      const { data: existingItems } = await query.limit(1);
+      const existing = existingItems && existingItems.length > 0 ? existingItems[0] : null;
+
+      let result;
+      if (existing) {
+        // Update quantity if item exists
+        const { data, error } = await supabaseAdmin
+          .from("cart_items")
+          .update({ quantity: existing.quantity + validatedData.quantity })
+          .eq("id", existing.id)
+          .select("*, products(*)")
+          .single();
+
+        if (error) throw error;
+        result = data;
+      } else {
+        // Insert new item
+        const { data, error } = await supabaseAdmin
+          .from("cart_items")
+          .insert(validatedData)
+          .select("*, products(*)")
+          .single();
+
+        if (error) throw error;
+        result = data;
+      }
+
+      res.json(result);
+    } catch (error: any) {
+      handleError(error, res);
+    }
+  });
+
+  // Update cart item quantity
+  app.put("/api/cart/:id", async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const { quantity } = req.body;
+
+      if (!quantity || quantity < 1) {
+        return res.status(400).json({ error: "Valid quantity required" });
+      }
+
+      const { data, error } = await supabaseAdmin
+        .from("cart_items")
+        .update({ quantity })
+        .eq("id", id)
+        .select("*, products(*)")
+        .single();
+
+      if (error) throw error;
+      res.json(data);
+    } catch (error: any) {
+      handleError(error, res);
+    }
+  });
+
+  // Delete cart item
+  app.delete("/api/cart/:id", async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+
+      const { error } = await supabaseAdmin
+        .from("cart_items")
+        .delete()
+        .eq("id", id);
+
+      if (error) throw error;
+      res.json({ success: true });
+    } catch (error: any) {
+      handleError(error, res);
+    }
+  });
+
+  // Clear cart (for user or session)
+  app.delete("/api/cart", async (req: Request, res: Response) => {
+    try {
+      const { user_id, session_id } = req.query;
+
+      if (!user_id && !session_id) {
+        return res.status(400).json({ error: "user_id or session_id required" });
+      }
+
+      let query = supabaseAdmin.from("cart_items").delete();
+
+      if (user_id) {
+        query = query.eq("user_id", user_id);
+      } else {
+        query = query.eq("session_id", session_id);
+      }
+
+      const { error } = await query;
+
+      if (error) throw error;
+      res.json({ success: true });
+    } catch (error: any) {
+      handleError(error, res);
+    }
+  });
+
+  // Sync guest cart to user cart (on login)
+  app.post("/api/cart/sync", async (req: Request, res: Response) => {
+    try {
+      const { user_id, session_id } = req.body;
+
+      if (!user_id || !session_id) {
+        return res.status(400).json({ error: "user_id and session_id required" });
+      }
+
+      // Update all cart items from session_id to user_id
+      const { error } = await supabaseAdmin
+        .from("cart_items")
+        .update({ user_id, session_id: null })
+        .eq("session_id", session_id);
+
+      if (error) throw error;
+      res.json({ success: true });
+    } catch (error: any) {
+      handleError(error, res);
+    }
+  });
+
+  // ============ ANNOUNCEMENTS ============
+  
+  // Get active announcement (public)
+  app.get("/api/announcement", async (req: Request, res: Response) => {
+    try {
+      const { data, error } = await supabaseAdmin
+        .from("announcements")
+        .select("*")
+        .eq("enabled", true)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .single();
+
+      if (error && error.code !== 'PGRST116') throw error;
+      res.json(data || null);
     } catch (error: any) {
       handleError(error, res);
     }
