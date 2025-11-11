@@ -305,14 +305,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const validatedData = insertOrderSchema.parse(req.body);
 
-      const { data, error } = await supabase
+      const { data: order, error: orderError } = await supabaseAdmin
         .from("orders")
         .insert(validatedData)
         .select()
         .single();
 
-      if (error) throw error;
-      res.json(data);
+      if (orderError) throw orderError;
+
+      const eventData = {
+        order_id: order.id,
+        status: 'pending',
+        notes: 'Order placed successfully',
+        created_by: validatedData.user_id || null,
+      };
+
+      const { error: eventError } = await supabaseAdmin
+        .from("order_events")
+        .insert(eventData);
+
+      if (eventError) {
+        console.error('Failed to create order event:', eventError);
+      }
+
+      if (validatedData.user_id) {
+        await supabaseAdmin
+          .from("cart_items")
+          .delete()
+          .eq("user_id", validatedData.user_id);
+      }
+
+      res.json(order);
     } catch (error: any) {
       handleError(error, res);
     }
@@ -1369,10 +1392,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         query = query.eq("user_email", user_email);
       }
 
-      const { data, error } = await query.order("created_at", { ascending: false });
+      const { data: orders, error } = await query.order("created_at", { ascending: false });
 
       if (error) throw error;
-      res.json(data || []);
+
+      const ordersWithEvents = await Promise.all(
+        (orders || []).map(async (order) => {
+          const { data: events } = await supabase
+            .from("order_events")
+            .select("*")
+            .eq("order_id", order.id)
+            .order("created_at", { ascending: false });
+
+          return {
+            ...order,
+            events: events || [],
+          };
+        })
+      );
+
+      res.json(ordersWithEvents);
     } catch (error: any) {
       handleError(error, res);
     }

@@ -4,13 +4,27 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useState } from "react";
+import { useCart } from "@/contexts/CartContext";
+import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
+import { useLocation } from "wouter";
+import { CreditCard, Wallet, Banknote, Loader2 } from "lucide-react";
 
 export default function Checkout() {
+  const { user } = useAuth();
+  const { items: cartItems, total, clearCart } = useCart();
+  const { toast } = useToast();
+  const [, setLocation] = useLocation();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<'cod' | 'upi' | 'card'>('cod');
+  
   const [formData, setFormData] = useState({
-    firstName: "",
-    lastName: "",
-    email: "",
+    firstName: user?.displayName?.split(' ')[0] || "",
+    lastName: user?.displayName?.split(' ').slice(1).join(' ') || "",
+    email: user?.email || "",
     phone: "",
     address: "",
     city: "",
@@ -18,10 +32,90 @@ export default function Checkout() {
     pincode: "",
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Order placed:", formData);
+    
+    if (cartItems.length === 0) {
+      toast({
+        title: "Cart is empty",
+        description: "Please add items to your cart before checkout",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (paymentMethod !== 'cod') {
+      toast({
+        title: "Payment method unavailable",
+        description: "Only Cash on Delivery is available at the moment",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const orderData = {
+        user_id: user?.uid,
+        user_email: formData.email,
+        user_name: `${formData.firstName} ${formData.lastName}`.trim(),
+        phone: formData.phone,
+        shipping_address: {
+          address: formData.address,
+          city: formData.city,
+          state: formData.state,
+          pincode: formData.pincode,
+        },
+        items: cartItems.map(item => ({
+          product_id: item.productId,
+          name: item.name,
+          price: item.price,
+          quantity: item.quantity,
+          size: item.size,
+          color: item.color,
+        })),
+        total_amount: total,
+        payment_method: paymentMethod,
+        payment_status: 'pending',
+        status: 'pending',
+      };
+
+      const response = await apiRequest("POST", "/api/orders", orderData);
+      
+      await clearCart();
+
+      toast({
+        title: "Order placed successfully!",
+        description: "Your order has been received and is being processed",
+      });
+
+      setLocation("/my-orders");
+    } catch (error: any) {
+      console.error("Order creation failed:", error);
+      toast({
+        title: "Order failed",
+        description: error.message || "Failed to place order. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
+
+  if (cartItems.length === 0) {
+    return (
+      <div className="min-h-screen">
+        <Header />
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 text-center">
+          <h1 className="text-4xl font-serif font-bold mb-4">Your cart is empty</h1>
+          <p className="text-muted-foreground mb-6">Add items to your cart before checkout</p>
+          <Button onClick={() => setLocation("/shop")}>Continue Shopping</Button>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen">
@@ -33,7 +127,7 @@ export default function Checkout() {
         </h1>
         
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2">
+          <div className="lg:col-span-2 space-y-6">
             <Card className="p-6">
               <h2 className="text-xl font-semibold mb-6">Shipping Information</h2>
               <form onSubmit={handleSubmit} className="space-y-4">
@@ -128,15 +222,71 @@ export default function Checkout() {
                 </div>
               </form>
             </Card>
+
+            <Card className="p-6">
+              <h2 className="text-xl font-semibold mb-6">Payment Method</h2>
+              <RadioGroup value={paymentMethod} onValueChange={(value: any) => setPaymentMethod(value)}>
+                <div className="space-y-3">
+                  <div className="flex items-center space-x-3 p-4 border rounded-lg cursor-pointer hover:bg-muted">
+                    <RadioGroupItem value="cod" id="cod" />
+                    <Label htmlFor="cod" className="flex items-center gap-2 cursor-pointer flex-1">
+                      <Banknote className="w-5 h-5" />
+                      <div>
+                        <p className="font-medium">Cash on Delivery</p>
+                        <p className="text-sm text-muted-foreground">Pay when you receive</p>
+                      </div>
+                    </Label>
+                  </div>
+
+                  <div className="flex items-center space-x-3 p-4 border rounded-lg opacity-50 cursor-not-allowed">
+                    <RadioGroupItem value="upi" id="upi" disabled />
+                    <Label htmlFor="upi" className="flex items-center gap-2 cursor-not-allowed flex-1">
+                      <Wallet className="w-5 h-5" />
+                      <div>
+                        <p className="font-medium">UPI Payment</p>
+                        <p className="text-sm text-muted-foreground">Coming soon</p>
+                      </div>
+                    </Label>
+                  </div>
+
+                  <div className="flex items-center space-x-3 p-4 border rounded-lg opacity-50 cursor-not-allowed">
+                    <RadioGroupItem value="card" id="card" disabled />
+                    <Label htmlFor="card" className="flex items-center gap-2 cursor-not-allowed flex-1">
+                      <CreditCard className="w-5 h-5" />
+                      <div>
+                        <p className="font-medium">Credit/Debit Card</p>
+                        <p className="text-sm text-muted-foreground">Coming soon</p>
+                      </div>
+                    </Label>
+                  </div>
+                </div>
+              </RadioGroup>
+            </Card>
           </div>
           
           <div>
             <Card className="p-6 sticky top-24">
               <h2 className="text-xl font-semibold mb-4">Order Summary</h2>
-              <div className="space-y-2 mb-6">
+              
+              <div className="space-y-3 mb-6 max-h-60 overflow-y-auto">
+                {cartItems.map((item) => (
+                  <div key={item.id} className="flex gap-3 text-sm">
+                    <img src={item.image} alt={item.name} className="w-16 h-16 object-cover rounded" />
+                    <div className="flex-1">
+                      <p className="font-medium">{item.name}</p>
+                      {item.size && <p className="text-muted-foreground">Size: {item.size}</p>}
+                      {item.color && <p className="text-muted-foreground">Color: {item.color}</p>}
+                      <p className="text-muted-foreground">Qty: {item.quantity}</p>
+                    </div>
+                    <p className="font-medium">₹{(item.price * item.quantity).toFixed(2)}</p>
+                  </div>
+                ))}
+              </div>
+
+              <div className="space-y-2 mb-6 pt-4 border-t">
                 <div className="flex justify-between">
                   <span>Subtotal</span>
-                  <span>₹0</span>
+                  <span>₹{total.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Shipping</span>
@@ -144,15 +294,23 @@ export default function Checkout() {
                 </div>
                 <div className="border-t border-border pt-2 flex justify-between font-semibold text-lg">
                   <span>Total</span>
-                  <span data-testid="text-total">₹0</span>
+                  <span data-testid="text-total">₹{total.toFixed(2)}</span>
                 </div>
               </div>
               <Button
                 className="w-full"
                 onClick={handleSubmit}
+                disabled={isSubmitting}
                 data-testid="button-place-order"
               >
-                Place Order
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Placing Order...
+                  </>
+                ) : (
+                  'Place Order'
+                )}
               </Button>
             </Card>
           </div>

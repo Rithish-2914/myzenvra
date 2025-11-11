@@ -35,6 +35,8 @@ interface Order {
     color?: string;
   }>;
   total_amount: number;
+  payment_method?: string;
+  payment_status?: string;
   status: string;
   created_at: string;
   events?: Array<{
@@ -175,7 +177,7 @@ export default function MyOrders() {
                     </div>
                     <div className="flex items-center gap-2 text-sm">
                       <DollarSign className="w-4 h-4 text-muted-foreground" />
-                      <span className="font-semibold">${order.total_amount.toFixed(2)}</span>
+                      <span className="font-semibold">₹{order.total_amount.toFixed(2)}</span>
                     </div>
                   </div>
                   <div className="flex items-start gap-2 text-sm text-muted-foreground">
@@ -232,12 +234,24 @@ export default function MyOrders() {
                   </div>
                   <div>
                     <p className="text-muted-foreground">Total</p>
-                    <p className="font-semibold">${selectedOrder.total_amount.toFixed(2)}</p>
+                    <p className="font-semibold">₹{selectedOrder.total_amount.toFixed(2)}</p>
                   </div>
                   <div>
                     <p className="text-muted-foreground">Items</p>
                     <p>{selectedOrder.items.length}</p>
                   </div>
+                  {selectedOrder.payment_method && (
+                    <div>
+                      <p className="text-muted-foreground">Payment Method</p>
+                      <p className="font-medium uppercase">{selectedOrder.payment_method}</p>
+                    </div>
+                  )}
+                  {selectedOrder.payment_status && (
+                    <div>
+                      <p className="text-muted-foreground">Payment Status</p>
+                      <p className="font-medium capitalize">{selectedOrder.payment_status}</p>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -263,7 +277,7 @@ export default function MyOrders() {
                       </div>
                       <div className="text-right">
                         <p>x{item.quantity}</p>
-                        <p className="font-semibold">${(item.price * item.quantity).toFixed(2)}</p>
+                        <p className="font-semibold">₹{(item.price * item.quantity).toFixed(2)}</p>
                       </div>
                     </div>
                   ))}

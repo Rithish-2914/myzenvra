@@ -45,6 +45,8 @@ interface Order {
     color?: string;
   }>;
   total_amount: number;
+  payment_method?: string;
+  payment_status?: string;
   status: string;
   created_at: string;
 }
@@ -222,13 +224,21 @@ export default function AdminOrders() {
                 </div>
                 <div className="mt-4 pt-4 border-t">
                   <div className="flex flex-wrap justify-between items-center gap-2">
-                    <div className="flex items-center gap-2">
-                      <Package className="w-4 h-4 text-muted-foreground" />
-                      <span className="text-sm">{order.items.length} item(s)</span>
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <Package className="w-4 h-4 text-muted-foreground" />
+                        <span className="text-sm">{order.items.length} item(s)</span>
+                      </div>
+                      {order.payment_method && (
+                        <div className="text-sm text-muted-foreground">
+                          Payment: <span className="font-medium uppercase">{order.payment_method}</span>
+                          {order.payment_status && ` (${order.payment_status})`}
+                        </div>
+                      )}
                     </div>
                     <div className="flex items-center gap-2">
                       <DollarSign className="w-4 h-4 text-muted-foreground" />
-                      <span className="text-lg font-bold">${order.total_amount.toFixed(2)}</span>
+                      <span className="text-lg font-bold">₹{order.total_amount.toFixed(2)}</span>
                     </div>
                   </div>
                 </div>

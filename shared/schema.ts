@@ -85,6 +85,7 @@ export type UpdateProduct = z.infer<typeof updateProductSchema>;
 // Order Schema
 export const orderSchema = z.object({
   id: z.string().uuid(),
+  user_id: z.string().optional(),
   user_email: z.string().email(),
   user_name: z.string(),
   phone: z.string(),
@@ -103,12 +104,15 @@ export const orderSchema = z.object({
     color: z.string().optional(),
   })),
   total_amount: z.number(),
+  payment_method: z.enum(['cod', 'upi', 'card']).default('cod'),
+  payment_status: z.enum(['pending', 'paid', 'failed']).default('pending'),
   status: z.string(),
   created_at: z.string(),
   updated_at: z.string(),
 });
 
 export const insertOrderSchema = z.object({
+  user_id: z.string().optional(),
   user_email: z.string().email("Valid email required"),
   user_name: z.string().min(1, "Name is required"),
   phone: z.string().min(10, "Valid phone number required"),
@@ -125,8 +129,10 @@ export const insertOrderSchema = z.object({
     quantity: z.number(),
     size: z.string().optional(),
     color: z.string().optional(),
-  })),
+  })).min(1, "At least one item is required"),
   total_amount: z.number().positive("Total amount must be positive"),
+  payment_method: z.enum(['cod', 'upi', 'card']).default('cod'),
+  payment_status: z.enum(['pending', 'paid', 'failed']).default('pending'),
   status: z.string().default("pending"),
 });
 
