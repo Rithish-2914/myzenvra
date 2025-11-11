@@ -1783,7 +1783,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get active announcement (public)
   app.get("/api/announcement", async (req, res) => {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await supabaseAdmin
         .from("announcements")
         .select("*")
         .eq("enabled", true)
