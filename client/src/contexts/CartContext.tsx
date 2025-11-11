@@ -168,6 +168,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
     try {
       // Make API request in background
+      console.log('[Cart] Adding item to backend:', { userId, sessionId, productId: item.productId });
       const response = await apiRequest('POST', '/api/cart', {
         user_id: userId,
         session_id: !userId ? sessionId : undefined,
@@ -178,6 +179,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       });
 
       const addedItem = await response.json();
+      console.log('[Cart] Item added successfully:', addedItem);
       
       // Replace optimistic item with real data from server
       setItems((currentItems) => 
@@ -193,7 +195,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         } : i)
       );
     } catch (error) {
-      console.warn('Backend unavailable, keeping optimistic update:', error);
+      console.error('[Cart] Failed to add item to backend:', error);
       // Keep the optimistic update - don't revert
     }
   };
