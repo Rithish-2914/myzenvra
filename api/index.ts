@@ -648,6 +648,204 @@ async function getApp(): Promise<Express> {
       handleError(error, res);
     }
   });
+
+  // ============ ADMIN DASHBOARD ============
+
+  // Get admin analytics/dashboard data
+  app.get("/api/admin/analytics", requireAdmin, async (req: Request, res: Response) => {
+    try {
+      // Get counts using count queries
+      const [productsResult, ordersResult, customPrintOrdersResult, contactResult, bulkOrdersResult] = await Promise.all([
+        supabaseAdmin.from("products").select("*", { count: "exact", head: true }),
+        supabaseAdmin.from("orders").select("*", { count: "exact", head: true }),
+        supabaseAdmin.from("custom_print_orders").select("*", { count: "exact", head: true }),
+        supabaseAdmin.from("contact_inquiries").select("*", { count: "exact", head: true }),
+        supabaseAdmin.from("bulk_orders").select("*", { count: "exact", head: true }),
+      ]);
+
+      // Get recent orders
+      const { data: recentOrders } = await supabaseAdmin
+        .from("orders")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(10);
+
+      // Get revenue (sum of all orders)
+      const { data: orders } = await supabaseAdmin
+        .from("orders")
+        .select("total_amount");
+      
+      const totalRevenue = orders?.reduce((sum, order) => sum + Number(order.total_amount), 0) || 0;
+
+      // Get recent activity
+      const { data: recentActivity } = await supabaseAdmin
+        .from("user_activity")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(50);
+
+      res.json({
+        counts: {
+          products: productsResult.count || 0,
+          orders: ordersResult.count || 0,
+          customPrintOrders: customPrintOrdersResult.count || 0,
+          contactInquiries: contactResult.count || 0,
+          bulkOrders: bulkOrdersResult.count || 0,
+        },
+        totalRevenue,
+        recentOrders: recentOrders || [],
+        recentActivity: recentActivity || [],
+      });
+    } catch (error: any) {
+      handleError(error, res);
+    }
+  });
+
+  // Admin: Get all orders with filters
+  app.get("/api/admin/orders", requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const { status, search, limit = 50, offset = 0 } = req.query;
+
+      let query = supabaseAdmin
+        .from("orders")
+        .select("*", { count: 'exact' });
+
+      if (status && status !== 'all') {
+        query = query.eq("status", status);
+      }
+
+      if (search) {
+        query = query.or(`user_email.ilike.%${search}%,user_name.ilike.%${search}%,phone.ilike.%${search}%`);
+      }
+
+      query = query
+        .order("created_at", { ascending: false })
+        .range(Number(offset), Number(offset) + Number(limit) - 1);
+
+      const { data, error, count } = await query;
+
+      if (error) throw error;
+      res.json({ orders: data || [], total: count });
+    } catch (error: any) {
+      handleError(error, res);
+    }
+  });
+
+  // Admin: Update order status
+  app.put("/api/admin/orders/:id/status", requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const { status, notes } = req.body;
+
+      // Update order status
+      const { data: order, error: orderError } = await supabaseAdmin
+        .from("orders")
+        .update({ status })
+        .eq("id", id)
+        .select()
+        .single();
+
+      if (orderError) throw orderError;
+
+      // Create order event with created_by field
+      const { error: eventError } = await supabaseAdmin
+        .from("order_events")
+        .insert({
+          order_id: id,
+          status,
+          notes,
+          created_by: (req as any).session?.adminId || null,
+          created_at: new Date().toISOString(),
+        });
+
+      if (eventError) throw eventError;
+
+      res.json(order);
+    } catch (error: any) {
+      handleError(error, res);
+    }
+  });
+
+  // ============ ADMIN ANALYTICS ============
+  
+  // Admin: Get order statistics
+  app.get("/api/admin/analytics/orders", requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const { period = '30' } = req.query;
+      
+      // Get orders from the last N days
+      const daysAgo = new Date();
+      daysAgo.setDate(daysAgo.getDate() - Number(period));
+
+      const { data, error } = await supabaseAdmin
+        .from("orders")
+        .select("*")
+        .gte("created_at", daysAgo.toISOString());
+
+      if (error) throw error;
+
+      // Calculate statistics
+      const orders = data || [];
+      const totalRevenue = orders.reduce((sum, order) => sum + Number(order.total_amount), 0);
+      const averageOrderValue = orders.length > 0 ? totalRevenue / orders.length : 0;
+
+      // Group by status
+      const statusCounts = orders.reduce((acc: any, order) => {
+        acc[order.status] = (acc[order.status] || 0) + 1;
+        return acc;
+      }, {});
+
+      res.json({
+        total_orders: orders.length,
+        total_revenue: totalRevenue,
+        average_order_value: averageOrderValue,
+        status_breakdown: statusCounts,
+        orders_by_day: orders,
+      });
+    } catch (error: any) {
+      handleError(error, res);
+    }
+  });
+
+  // Admin: Get top products
+  app.get("/api/admin/analytics/top-products", requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const { limit = 10 } = req.query;
+
+      // Get all orders
+      const { data: orders, error } = await supabaseAdmin
+        .from("orders")
+        .select("items");
+
+      if (error) throw error;
+
+      // Count product sales
+      const productSales: any = {};
+      orders?.forEach((order: any) => {
+        order.items?.forEach((item: any) => {
+          if (!productSales[item.product_id]) {
+            productSales[item.product_id] = {
+              product_id: item.product_id,
+              name: item.name,
+              total_quantity: 0,
+              total_revenue: 0,
+            };
+          }
+          productSales[item.product_id].total_quantity += item.quantity;
+          productSales[item.product_id].total_revenue += item.price * item.quantity;
+        });
+      });
+
+      // Convert to array and sort
+      const topProducts = Object.values(productSales)
+        .sort((a: any, b: any) => b.total_quantity - a.total_quantity)
+        .slice(0, Number(limit));
+
+      res.json(topProducts);
+    } catch (error: any) {
+      handleError(error, res);
+    }
+  });
   
   console.log('✅ Express app initialized for Vercel serverless function');
   
