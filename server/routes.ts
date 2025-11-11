@@ -1030,7 +1030,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "user_id or session_id required" });
       }
 
-      let query = supabase
+      let query = supabaseAdmin
         .from("cart_items")
         .select("*, products(*)");
 
@@ -1055,7 +1055,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const validatedData = insertCartItemSchema.parse(req.body);
       
       // Check if item already exists in cart
-      let query = supabase.from("cart_items").select("*");
+      let query = supabaseAdmin.from("cart_items").select("*");
       
       if (validatedData.user_id) {
         query = query.eq("user_id", validatedData.user_id);
