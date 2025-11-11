@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useState, useRef } from 'react';
 import { useAuth } from './AuthContext';
 import { apiRequest } from '@/lib/queryClient';
 
@@ -51,12 +51,62 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
   const [items, setItems] = useState<CartItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const prevUserIdRef = useRef<string | null>(null);
+
+  // Sync guest cart to user cart when user logs in
+  useEffect(() => {
+    if (loading) return;
+
+    const currentUserId = user?.uid || null;
+    const previousUserId = prevUserIdRef.current;
+
+    // Detect login: user changed from null to a user object
+    const isLogin = !previousUserId && currentUserId;
+
+    if (isLogin) {
+      const sessionId = getSessionId();
+      console.log('[Cart] User logged in, syncing guest cart to user account...', { currentUserId, sessionId });
+
+      const syncCart = async () => {
+        setIsSyncing(true);
+        try {
+          const response = await apiRequest('POST', '/api/cart/sync', {
+            user_id: currentUserId,
+            session_id: sessionId,
+          });
+
+          console.log('[Cart] Cart sync successful');
+
+          // Clear guest cart data after successful sync
+          localStorage.removeItem('cart_guest');
+          localStorage.removeItem('cart_session_id');
+        } catch (error) {
+          console.error('[Cart] Cart sync failed, will retry on next fetch:', error);
+          // Keep guest data for retry
+        } finally {
+          setIsSyncing(false);
+        }
+      };
+
+      syncCart();
+    }
+
+    // Update previous user ID for next comparison
+    prevUserIdRef.current = currentUserId;
+  }, [user, loading]);
 
   // Fetch cart from backend when component mounts or user changes
   useEffect(() => {
     // Wait for auth to load before fetching cart
     if (loading) {
       console.log('[Cart] Waiting for auth to load...');
+      return;
+    }
+
+    // Wait for sync to complete before fetching
+    if (isSyncing) {
+      console.log('[Cart] Waiting for sync to complete...');
       return;
     }
 
@@ -129,7 +179,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     };
 
     fetchCart();
-  }, [user, loading]);
+  }, [user, loading, isSyncing]);
 
   // Save to localStorage as backup
   useEffect(() => {
@@ -138,6 +188,12 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   }, [items, user]);
 
   const addItem = async (item: Omit<CartItem, 'id' | 'quantity'> & { quantity?: number }) => {
+    // Don't allow mutations during sync
+    if (isSyncing) {
+      console.warn('[Cart] Cart is syncing, please wait...');
+      return;
+    }
+
     const userId = user?.uid;
     const sessionId = getSessionId();
 
@@ -201,6 +257,12 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   };
 
   const removeItem = async (id: string) => {
+    // Don't allow mutations during sync
+    if (isSyncing) {
+      console.warn('[Cart] Cart is syncing, please wait...');
+      return;
+    }
+
     // OPTIMISTIC UPDATE - Remove from UI immediately
     const removedItem = items.find(item => item.id === id);
     setItems((currentItems) => currentItems.filter((item) => item.id !== id));
@@ -215,6 +277,12 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   };
 
   const updateQuantity = async (id: string, quantity: number) => {
+    // Don't allow mutations during sync
+    if (isSyncing) {
+      console.warn('[Cart] Cart is syncing, please wait...');
+      return;
+    }
+
     if (quantity <= 0) {
       await removeItem(id);
       return;
