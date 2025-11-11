@@ -319,7 +319,7 @@ async function getApp(): Promise<Express> {
   // Submit contact form
   app.post("/api/contact", async (req: Request, res: Response) => {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await supabaseAdmin
         .from("contact_inquiries")
         .insert(req.body)
         .select()
@@ -335,7 +335,7 @@ async function getApp(): Promise<Express> {
   // Create order
   app.post("/api/orders", async (req: Request, res: Response) => {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await supabaseAdmin
         .from("orders")
         .insert(req.body)
         .select()
