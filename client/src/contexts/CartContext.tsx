@@ -48,12 +48,18 @@ function getSessionId(): string {
 }
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const [items, setItems] = useState<CartItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
   // Fetch cart from backend when component mounts or user changes
   useEffect(() => {
+    // Wait for auth to load before fetching cart
+    if (loading) {
+      console.log('[Cart] Waiting for auth to load...');
+      return;
+    }
+
     const fetchCart = async () => {
       setIsLoading(true);
       try {
@@ -123,7 +129,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     };
 
     fetchCart();
-  }, [user]);
+  }, [user, loading]);
 
   // Save to localStorage as backup
   useEffect(() => {
