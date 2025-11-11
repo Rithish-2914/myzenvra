@@ -1,0 +1,39 @@
+false
+content.7f229555.js:1 undefined
+content.7f229555.js:1 false
+content.7f229555.js:1 {}
+content.7f229555.js:1 74a8e98a0b93ee3aa14778d6cc8eb0d34a857c57cd4521dbf6daf81370958dd8f426640cbbea3eab06dd450cf072de7dbb2e9ff66cfe654f9a0f83278eb790b7
+index-CWbbt5q1.js:1867 🔄 Syncing user to Supabase... bajjuririthish521@gmail.com
+index-CWbbt5q1.js:1867 ✅ User synced to Supabase: {success: true, user: {…}}
+index-CWbbt5q1.js:1867 🔄 Fetching user profile from Supabase...
+index-CWbbt5q1.js:1867 ✅ User profile fetched: {email: 'bajjuririthish521@gmail.com', role: 'admin'}
+index-CWbbt5q1.js:1867 [Cart] Using existing session ID: session_1762884453809_mhgn5e
+index-CWbbt5q1.js:1867 [Cart] User logged in, syncing guest cart to user account... {currentUserId: 'HtgY00FShUa6naie8EiPgZmPHZU2', sessionId: 'session_1762884453809_mhgn5e'}
+index-CWbbt5q1.js:1867 [Cart] Using existing session ID: session_1762884453809_mhgn5e
+index-CWbbt5q1.js:1867 [Cart] Fetching cart with: {userId: 'HtgY00FShUa6naie8EiPgZmPHZU2', sessionId: 'session_1762884453809_mhgn5e'}
+index-CWbbt5q1.js:1867 [Cart] Waiting for sync to complete...
+index-CWbbt5q1.js:1867 [Cart] Cart sync successful
+index-CWbbt5q1.js:1867 [Cart] Generated new session ID: session_1762884719245_a99elc
+index-CWbbt5q1.js:1867 [Cart] Fetching cart with: {userId: 'HtgY00FShUa6naie8EiPgZmPHZU2', sessionId: 'session_1762884719245_a99elc'}
+index-CWbbt5q1.js:1867 [Cart] Backend items: []
+index-CWbbt5q1.js:1867 [Cart] Backend items: []
+index-CWbbt5q1.js:48  GET https://myzenvra.vercel.app/api/my-orders/HtgY00FShUa6naie8EiPgZmPHZU2 504 (Gateway Timeout)
+(anonymous) @ index-CWbbt5q1.js:48
+a @ index-CWbbt5q1.js:48
+y @ index-CWbbt5q1.js:48
+start @ index-CWbbt5q1.js:48
+fetch @ index-CWbbt5q1.js:48
+zd @ index-CWbbt5q1.js:48
+onSubscribe @ index-CWbbt5q1.js:48
+subscribe @ index-CWbbt5q1.js:48
+(anonymous) @ index-CWbbt5q1.js:48
+CD @ index-CWbbt5q1.js:38
+Sy @ index-CWbbt5q1.js:40
+bc @ index-CWbbt5q1.js:40
+WT @ index-CWbbt5q1.js:40
+oo @ index-CWbbt5q1.js:38
+M9 @ index-CWbbt5q1.js:40
+So @ index-CWbbt5q1.js:40
+i$ @ index-CWbbt5q1.js:40
+_ @ index-CWbbt5q1.js:25
+A @ index-CWbbt5q1.js:25Understand this error
