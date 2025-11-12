@@ -77,7 +77,7 @@ export default function Header() {
               <img 
                 src={logoImage} 
                 alt="ANVZ Logo" 
-                className="h-10 w-auto dark:invert"
+                className="h-11 w-auto dark:invert"
               />
             </div>
             
