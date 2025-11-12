@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { ImageUpload } from "@/components/ImageUpload";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Pencil, Trash2 } from "lucide-react";
@@ -158,13 +159,11 @@ function CategoriesPage() {
               </div>
 
               <div>
-                <Label htmlFor="image_url">Image URL (Optional)</Label>
-                <Input
-                  id="image_url"
-                  value={formData.image_url}
-                  onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
-                  placeholder="https://..."
-                  data-testid="input-category-image"
+                <ImageUpload
+                  label="Category Image"
+                  bucket="categories"
+                  currentImage={formData.image_url}
+                  onImageUploaded={(url) => setFormData({ ...formData, image_url: url })}
                 />
               </div>
 
@@ -191,33 +190,45 @@ function CategoriesPage() {
             <p>Loading categories...</p>
           ) : (
             categories?.map((category: any) => (
-              <Card key={category.id} className="p-6">
-                <h3 className="text-xl font-semibold mb-2" data-testid={`category-name-${category.id}`}>
-                  {category.name}
-                </h3>
-                <p className="text-sm text-muted-foreground mb-2">{category.slug}</p>
-                <p className="text-sm text-muted-foreground mb-4">{category.description}</p>
-                <div className="flex gap-2">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleEdit(category)}
-                    data-testid={`button-edit-${category.id}`}
-                  >
-                    <Pencil className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="destructive"
-                    onClick={() => {
-                      if (confirm("Delete this category?")) {
-                        deleteMutation.mutate(category.id);
-                      }
-                    }}
-                    data-testid={`button-delete-${category.id}`}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+              <Card key={category.id} className="overflow-hidden">
+                {category.image_url && (
+                  <div className="h-48 overflow-hidden bg-muted">
+                    <img
+                      src={category.image_url}
+                      alt={category.name}
+                      className="w-full h-full object-cover"
+                      data-testid={`img-category-${category.id}`}
+                    />
+                  </div>
+                )}
+                <div className="p-6">
+                  <h3 className="text-xl font-semibold mb-2" data-testid={`category-name-${category.id}`}>
+                    {category.name}
+                  </h3>
+                  <p className="text-sm text-muted-foreground mb-2">{category.slug}</p>
+                  <p className="text-sm text-muted-foreground mb-4">{category.description}</p>
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleEdit(category)}
+                      data-testid={`button-edit-${category.id}`}
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={() => {
+                        if (confirm("Delete this category?")) {
+                          deleteMutation.mutate(category.id);
+                        }
+                      }}
+                      data-testid={`button-delete-${category.id}`}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
               </Card>
             ))
