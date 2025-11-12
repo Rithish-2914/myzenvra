@@ -22,8 +22,8 @@ const FEATURED_BLOGS = [
   },
   {
     id: 3,
-    title: "Behind the Scenes: VIT Student Designers",
-    excerpt: "Meet the talented students bringing creativity and innovation to luxury streetwear.",
+    title: "Behind the Scenes: The 3 Founders",
+    excerpt: "Meet the 3 friends bringing creativity and innovation to luxury streetwear from their shared dorm.",
     image: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&auto=format&fit=crop",
     date: "Oct 28, 2024",
     category: "Community"

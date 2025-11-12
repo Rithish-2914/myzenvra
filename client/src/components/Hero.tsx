@@ -31,7 +31,7 @@ export default function Hero() {
           className="text-lg md:text-xl text-white/90 mb-8 max-w-2xl mx-auto"
           data-testid="text-hero-subtitle"
         >
-          Luxury Gen-Z streetwear with customizable designs. Oversized hoodies, tees, and gifts crafted by VIT students for the modern generation.
+          Luxury Gen-Z streetwear with customizable designs. Oversized hoodies, tees, and gifts crafted by 3 friends who started from a small shared dorm for the modern generation.
         </motion.p>
 
         <motion.div

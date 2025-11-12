@@ -9,7 +9,7 @@ const faqs = [
   {
     id: 1,
     question: "What makes myzenvra different from other streetwear brands?",
-    answer: "We're a student-led brand from VIT that combines Old Money aesthetics with modern Gen-Z streetwear. Every piece is customizable, and we focus on oversized fits and premium quality at affordable prices.",
+    answer: "We're a brand started by 3 friends from a small shared dorm that combines Old Money aesthetics with modern Gen-Z streetwear. Every piece is customizable, and we focus on oversized fits and premium quality at affordable prices.",
   },
   {
     id: 2,

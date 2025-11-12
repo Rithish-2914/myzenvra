@@ -12,7 +12,7 @@ export default function Footer() {
           <div>
             <h3 className="text-xl font-serif font-bold mb-4">myzenvra</h3>
             <p className="text-sm text-muted-foreground">
-              Old Money meets Modern Drip. Crafted by VIT students for Gen-Z.
+              Old Money meets Modern Drip. Started by 3 friends from a small shared dorm.
             </p>
           </div>
 

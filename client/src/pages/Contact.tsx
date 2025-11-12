@@ -63,8 +63,8 @@ export default function Contact() {
                 <div>
                   <h3 className="font-semibold mb-1">Location</h3>
                   <p className="text-sm text-muted-foreground" data-testid="text-location">
-                    VIT University<br />
-                    Vellore, Tamil Nadu
+                    Vellore, Tamil Nadu<br />
+                    India
                   </p>
                 </div>
               </div>

@@ -22,9 +22,9 @@ export default function AboutSection() {
                 <Users className="h-6 w-6 text-primary" />
               </div>
             </div>
-            <h3 className="font-semibold text-lg">Crafted by Students</h3>
+            <h3 className="font-semibold text-lg">Friends with a Vision</h3>
             <p className="text-sm text-muted-foreground">
-              Every piece is designed and created by talented VIT students, bringing fresh perspectives to streetwear.
+              Every piece is designed and created by 3 friends who started from a small shared dorm, bringing fresh perspectives to streetwear.
             </p>
           </div>
 

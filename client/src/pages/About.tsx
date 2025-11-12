@@ -20,7 +20,7 @@ export default function About() {
             Our Story
           </h1>
           <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
-            Three VIT students building a Gen-Z luxury brand merging Old Money aesthetics with modern drips and gifts
+            Three friends building a Gen-Z luxury brand from a small shared dorm, merging Old Money aesthetics with modern drips and gifts
           </p>
         </motion.div>
 
@@ -44,7 +44,7 @@ export default function About() {
           >
             <h2 className="text-3xl font-serif font-bold mb-4">The Vision</h2>
             <p className="text-muted-foreground leading-relaxed">
-              Started in our VIT dorm rooms, myzenvra was born from a simple idea: luxury fashion shouldn't be exclusive. We wanted to create a brand that celebrates the timeless elegance of Old Money aesthetics while embracing the bold, expressive nature of Gen-Z streetwear.
+              Started in a small shared dorm by 3 friends, myzenvra was born from a simple idea: luxury fashion shouldn't be exclusive. We wanted to create a brand that celebrates the timeless elegance of Old Money aesthetics while embracing the bold, expressive nature of Gen-Z streetwear.
             </p>
           </motion.div>
 
@@ -64,7 +64,7 @@ export default function About() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {[
             { title: "Quality First", desc: "Premium fabrics and construction in every piece" },
-            { title: "Student-Led", desc: "Built by students, for the modern generation" },
+            { title: "Friends United", desc: "Built by 3 friends from a shared dorm, for the modern generation" },
             { title: "Affordable Luxury", desc: "High-end aesthetics at accessible prices" },
           ].map((value, index) => (
             <motion.div

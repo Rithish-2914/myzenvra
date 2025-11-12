@@ -21,8 +21,8 @@ const blogPosts = [
   },
   {
     id: 3,
-    title: "Behind the Scenes: Starting a Brand from VIT",
-    excerpt: "Our journey from college students to fashion entrepreneurs.",
+    title: "Behind the Scenes: Starting a Brand from a Dorm",
+    excerpt: "Our journey from 3 friends in a shared dorm to fashion entrepreneurs.",
     date: "Oct 20, 2025",
     category: "Brand Story",
   },
