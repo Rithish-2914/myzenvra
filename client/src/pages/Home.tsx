@@ -12,9 +12,9 @@ export default function Home() {
       <Header />
       <Hero />
       <CategoryShowcase />
-      <AboutSection />
       <BlogSection />
       <Testimonials />
+      <AboutSection />
       <Footer />
     </div>
   );
