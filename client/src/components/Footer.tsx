@@ -1,5 +1,5 @@
 import { Link } from "wouter";
-import { Instagram, Twitter, Facebook, Mail } from "lucide-react";
+import { Instagram, Linkedin, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export default function Footer() {
@@ -52,18 +52,36 @@ export default function Footer() {
             </p>
 
             <div className="flex items-center gap-2">
-              <Button variant="ghost" size="icon" data-testid="button-social-instagram">
-                <Instagram className="h-5 w-5" />
-              </Button>
-              <Button variant="ghost" size="icon" data-testid="button-social-twitter">
-                <Twitter className="h-5 w-5" />
-              </Button>
-              <Button variant="ghost" size="icon" data-testid="button-social-facebook">
-                <Facebook className="h-5 w-5" />
-              </Button>
-              <Button variant="ghost" size="icon" data-testid="button-social-email">
-                <Mail className="h-5 w-5" />
-              </Button>
+              <a 
+                href="https://www.instagram.com/zenvra.clothing" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                aria-label="Instagram"
+              >
+                <Button variant="ghost" size="icon" data-testid="button-social-instagram">
+                  <Instagram className="h-5 w-5" />
+                </Button>
+              </a>
+              <a 
+                href="https://www.linkedin.com/in/zenvra-clothing-7706a5391" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                aria-label="LinkedIn"
+              >
+                <Button variant="ghost" size="icon" data-testid="button-social-linkedin">
+                  <Linkedin className="h-5 w-5" />
+                </Button>
+              </a>
+              <a 
+                href="https://mail.google.com/mail/?view=cm&fs=1&to=myzenvra@gmail.com" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                aria-label="Email"
+              >
+                <Button variant="ghost" size="icon" data-testid="button-social-email">
+                  <Mail className="h-5 w-5" />
+                </Button>
+              </a>
             </div>
           </div>
         </div>
