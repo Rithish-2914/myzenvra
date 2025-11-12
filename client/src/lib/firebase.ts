@@ -1,5 +1,6 @@
 import { initializeApp, FirebaseApp } from 'firebase/app';
 import { getAuth, Auth } from 'firebase/auth';
+import { getStorage, FirebaseStorage } from 'firebase/storage';
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -18,6 +19,9 @@ export const app: FirebaseApp | null = isFirebaseConfigured ? initializeApp(fire
 
 // Initialize Firebase Authentication only if app is initialized
 export const auth: Auth | null = app ? getAuth(app) : null;
+
+// Initialize Firebase Storage only if app is initialized
+export const storage: FirebaseStorage | null = app ? getStorage(app) : null;
 
 // Export auth instance as default
 export default auth;
