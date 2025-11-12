@@ -1,5 +1,6 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import ProductCard from "@/components/ProductCard";
@@ -7,8 +8,18 @@ import ProductFilters from "@/components/ProductFilters";
 import { Product, Category } from "@/../../shared/schema";
 
 export default function Shop() {
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [location] = useLocation();
+  const searchParams = new URLSearchParams(location.split('?')[1] || '');
+  const categoryFromUrl = searchParams.get('category');
+  
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(categoryFromUrl);
   const [priceRange, setPriceRange] = useState<number[]>([0, 5000]);
+
+  useEffect(() => {
+    if (categoryFromUrl) {
+      setSelectedCategory(categoryFromUrl);
+    }
+  }, [categoryFromUrl]);
 
   const { data: categories = [], isLoading: categoriesLoading } = useQuery<Category[]>({
     queryKey: ['/api/categories'],
@@ -80,7 +91,7 @@ export default function Shop() {
                     id={product.id}
                     name={product.name}
                     price={product.price}
-                    image={product.image_url}
+                    image={product.images[0] || ''}
                     category={(product as any).categories?.name || ""}
                     customizable={product.customizable}
                   />

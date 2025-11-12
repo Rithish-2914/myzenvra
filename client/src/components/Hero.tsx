@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
+import { Link } from "wouter";
 import heroImage from "@assets/generated_images/Hero_banner_luxury_lifestyle_4f7b2d5c.png";
 
 export default function Hero() {
@@ -39,21 +40,25 @@ export default function Hero() {
           transition={{ duration: 0.8, delay: 0.4 }}
           className="flex flex-col sm:flex-row gap-4 justify-center"
         >
-          <Button
-            size="lg"
-            className="text-base px-8 py-6 backdrop-blur-sm bg-primary hover:bg-primary/90 border border-primary-border"
-            data-testid="button-customize-drip"
-          >
-            Customize Your Drip
-          </Button>
-          <Button
-            size="lg"
-            variant="outline"
-            className="text-base px-8 py-6 backdrop-blur-sm bg-white/10 border-2 border-white text-white hover:bg-white/20"
-            data-testid="button-shop-collection"
-          >
-            Shop Collection
-          </Button>
+          <Link href="/customized-gifts">
+            <Button
+              size="lg"
+              className="text-base px-8 py-6 backdrop-blur-sm bg-primary hover:bg-primary/90 border border-primary-border"
+              data-testid="button-customize-drip"
+            >
+              Customised Gift
+            </Button>
+          </Link>
+          <Link href="/shop">
+            <Button
+              size="lg"
+              variant="outline"
+              className="text-base px-8 py-6 backdrop-blur-sm bg-white/10 border-2 border-white text-white hover:bg-white/20"
+              data-testid="button-shop-collection"
+            >
+              Shop Collection
+            </Button>
+          </Link>
         </motion.div>
       </div>
     </section>
